@@ -52,12 +52,26 @@ FinSight takes the other path:
 > A good portfolio tracker should be a file format first, a command-line tool
 > second, and a dashboard third — in that order.
 
-## ⚡ Try it in 60 seconds
+## ⚡ Install
+
+```bash
+npm install -g finsight
+finsight init        # asks for base currency, locale, where to store your files
+finsight overview    # see your portfolio
+```
+
+Requires Node.js >= 22. The package is on
+[npmjs.com/package/finsight](https://www.npmjs.com/package/finsight).
+
+## 🧪 Or — try it without committing
+
+If you want to see the dashboard with realistic sample data before installing
+anything globally, clone and run the demo:
 
 ```bash
 git clone https://github.com/ApeCodeAI/finsight && cd finsight
 pnpm install
-pnpm demo            # ← USD/English demo portfolio + dashboard at localhost:3210
+pnpm demo            # ← USD/English demo + dashboard at localhost:3210
 # pnpm demo zh       # ← CNY/中文 demo (A-shares funds / HK / US / crypto)
 ```
 
@@ -65,24 +79,10 @@ The demo creates a throwaway sandbox under `/tmp/finsight-demo`, loads a sample
 portfolio, and opens the dashboard. Quit it (Ctrl+C) and the sandbox is wiped —
 nothing touches your real config.
 
-## 🔧 Install for real
-
-```bash
-# 1. Clone and build
-git clone https://github.com/ApeCodeAI/finsight && cd finsight
-pnpm install && pnpm -r build
-
-# 2. Put the CLI on your PATH (symlink into ~/.local/bin)
-ln -sf "$(pwd)/packages/cli/dist/index.js" ~/.local/bin/finsight
-chmod +x packages/cli/dist/index.js
-
-# 3. First-time setup
-finsight init        # asks for base currency, locale, where to store your files
-
-# 4. Use it
-finsight overview
-finsight web         # http://localhost:3210
-```
+> The web dashboard (`finsight web`) currently runs from a repo clone only —
+> the production-bundled dashboard is on the v0.2 roadmap. For now,
+> `npm install -g finsight` gives you the full CLI + AI integration; clone
+> the repo if you also want the visual dashboard.
 
 ## 🔭 Three windows into the same data
 

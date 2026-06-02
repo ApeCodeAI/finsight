@@ -43,7 +43,20 @@ FinSight 走另一条路：
 
 > 一个好的投资追踪工具，应该先是一个文件格式，然后是命令行，最后才是 Dashboard。
 
-## ⚡ 60 秒上手（demo）
+## ⚡ 安装
+
+```bash
+npm install -g finsight
+finsight init        # 问你基准币、地区、文件存哪里
+finsight overview    # 看你的组合
+```
+
+需要 Node.js >= 22。包在
+[npmjs.com/package/finsight](https://www.npmjs.com/package/finsight)。
+
+## 🧪 或者 —— 先免安装试一下
+
+如果想先看看 dashboard 长什么样、用 realistic 样例数据感受一下再决定要不要装，clone 仓库跑 demo：
 
 ```bash
 git clone https://github.com/ApeCodeAI/finsight && cd finsight
@@ -56,24 +69,9 @@ Demo 会在 `/tmp/finsight-demo` 创建一个一次性沙箱，加载样例组�
 自动打开 dashboard。Ctrl+C 退出后沙箱自动清掉，完全不影响你真实的
 `~/.finsight/` 配置。
 
-## 🔧 正式安装
-
-```bash
-# 1. clone & build
-git clone https://github.com/ApeCodeAI/finsight && cd finsight
-pnpm install && pnpm -r build
-
-# 2. 把 finsight 命令放到 PATH 里（软链到 ~/.local/bin）
-ln -sf "$(pwd)/packages/cli/dist/index.js" ~/.local/bin/finsight
-chmod +x packages/cli/dist/index.js
-
-# 3. 首次配置
-finsight init        # 问你基准币、地区、文件存哪里
-
-# 4. 用起来
-finsight overview
-finsight web         # http://localhost:3210
-```
+> Web dashboard（`finsight web`）目前只能从 clone 仓库跑 —— 生产构建版的
+> dashboard 是 v0.2 的 roadmap。现在 `npm install -g finsight` 装好的是
+> 完整 CLI + AI 集成；想要可视化 dashboard 就 clone 仓库。
 
 ## 🔭 同一份数据，三个看法
 
