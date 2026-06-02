@@ -28,29 +28,43 @@ export const DEFAULTS: Required<Omit<FinsightConfig, "ledger_dir" | "db_path">> 
   labels_language: "en",
 };
 
-const CONFIG_DIR = path.join(homedir(), ".finsight");
-const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
+/**
+ * Config dir resolution honors `FINSIGHT_CONFIG_DIR` env, falling back to
+ * `~/.finsight/`. The env override is read on every call (not cached at
+ * import time) so test suites and multi-profile workflows can switch
+ * configs without restarting the process.
+ */
+function resolveConfigDir(): string {
+  const envDir = process.env.FINSIGHT_CONFIG_DIR;
+  if (envDir && envDir.trim().length > 0) return envDir;
+  return path.join(homedir(), ".finsight");
+}
+
+function resolveConfigPath(): string {
+  return path.join(resolveConfigDir(), "config.json");
+}
 
 export function configDir(): string {
-  return CONFIG_DIR;
+  return resolveConfigDir();
 }
 
 export function configPath(): string {
-  return CONFIG_PATH;
+  return resolveConfigPath();
 }
 
 export function readConfig(): FinsightConfig {
-  if (!existsSync(CONFIG_PATH)) return {};
+  const p = resolveConfigPath();
+  if (!existsSync(p)) return {};
   try {
-    return JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as FinsightConfig;
+    return JSON.parse(readFileSync(p, "utf8")) as FinsightConfig;
   } catch {
     return {};
   }
 }
 
 export function writeConfig(cfg: FinsightConfig): void {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_PATH, `${JSON.stringify(cfg, null, 2)}\n`);
+  mkdirSync(resolveConfigDir(), { recursive: true });
+  writeFileSync(resolveConfigPath(), `${JSON.stringify(cfg, null, 2)}\n`);
 }
 
 /** Merge persisted config with defaults to get the full effective view. */
@@ -93,7 +107,7 @@ export function getDbPath(): string {
   if (envPath && envPath.trim().length > 0) return envPath;
   const cfg = readConfig();
   if (cfg.db_path && cfg.db_path.trim().length > 0) return cfg.db_path;
-  return path.join(CONFIG_DIR, "data", "finsight.db");
+  return path.join(resolveConfigDir(), "data", "finsight.db");
 }
 
 /** A whitelist of keys writable via `finsight config set`. */
