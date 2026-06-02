@@ -28,7 +28,7 @@ program
       "  AI agents: read `skills/finsight/SKILL.md`, then start with\n" +
       "  `finsight context` (LLM-ready briefing) or `finsight doctor` (health check).",
   )
-  .version("0.2.0");
+  .version("0.1.0"); // keep in sync with packages/cli/package.json#version
 
 program.addCommand(initCmd);
 program.addCommand(accountCmd);

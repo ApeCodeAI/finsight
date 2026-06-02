@@ -1,39 +1,68 @@
 {
-  "name": "@finsight/cli",
+  "name": "finsight",
   "version": "0.1.0",
   "type": "module",
   "bin": {
     "finsight": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/index.ts",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.5.0",
+    "better-sqlite3": "^11.9.0",
+    "chalk": "^5.4.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.0",
+    "drizzle-orm": "^0.44.0",
+    "ulid": "^2.3.0",
+    "xlsx": "^0.18.5",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
     "@finsight/core": "workspace:*",
     "@finsight/connector-yzyx": "workspace:*",
     "@finsight/connector-yfinance": "workspace:*",
     "@finsight/connector-tiantian": "workspace:*",
-    "commander": "^14.0.0",
-    "@inquirer/prompts": "^7.5.0",
-    "chalk": "^5.4.0",
-    "cli-table3": "^0.6.5"
-  },
-  "devDependencies": {
     "tsup": "^8.5.0",
     "tsx": "^4.19.0",
     "vitest": "^3.2.0",
     "typescript": "^5.8.0"
   },
-  "description": "FinSight CLI — local-first portfolio tracker with --json everywhere and semantic exit codes.",
+  "description": "Local-first, AI-friendly personal portfolio tracker. Your files are truth, every CLI command outputs JSON for AI agents.",
+  "keywords": [
+    "portfolio",
+    "personal-finance",
+    "investment-tracker",
+    "net-worth",
+    "ai-friendly",
+    "local-first",
+    "cli",
+    "yfinance",
+    "obsidian",
+    "vault"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ApeCodeAI/finsight.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/ApeCodeAI/finsight/tree/main/packages/cli#readme",
+  "homepage": "https://github.com/ApeCodeAI/finsight#readme",
   "bugs": "https://github.com/ApeCodeAI/finsight/issues",
   "license": "Apache-2.0",
-  "author": "FinSight contributors"
+  "author": "ApeCode.ai and FinSight contributors (https://apecode.ai)",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": false
+  }
 }
