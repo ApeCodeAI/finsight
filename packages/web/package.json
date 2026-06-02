@@ -1,0 +1,52 @@
+{
+  "name": "@finsight/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n vite,api -c blue,magenta \"vite\" \"tsx watch server/index.ts\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "vite build",
+    "build:server": "tsup server/index.ts --format esm --out-dir dist/server",
+    "start": "NODE_ENV=production tsx server/index.ts",
+    "typecheck": "tsc -b"
+  },
+  "dependencies": {
+    "@finsight/core": "workspace:*",
+    "@hono/node-server": "^1.13.7",
+    "@radix-ui/react-slot": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "hono": "^4.6.14",
+    "lucide-react": "^0.469.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "recharts": "^3.8.1",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "tailwindcss": "^4.0.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  },
+  "description": "FinSight dashboard — Vite + React 19 + Tailwind v4 + shadcn/ui, Hono API.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApeCodeAI/finsight.git",
+    "directory": "packages/web"
+  },
+  "homepage": "https://github.com/ApeCodeAI/finsight/tree/main/packages/web#readme",
+  "bugs": "https://github.com/ApeCodeAI/finsight/issues",
+  "license": "Apache-2.0",
+  "author": "FinSight contributors"
+}

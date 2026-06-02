@@ -1,0 +1,38 @@
+{
+  "name": "finsight",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first, AI-friendly personal portfolio tracker. Plain-text files are the source of truth; every command outputs JSON for AI tools.",
+  "keywords": [
+    "portfolio",
+    "personal-finance",
+    "investment-tracker",
+    "net-worth",
+    "yfinance",
+    "ai-friendly",
+    "local-first",
+    "vault",
+    "obsidian",
+    "cli"
+  ],
+  "homepage": "https://github.com/ApeCodeAI/finsight#readme",
+  "bugs": "https://github.com/ApeCodeAI/finsight/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApeCodeAI/finsight.git"
+  },
+  "license": "Apache-2.0",
+  "author": "ApeCode.ai and FinSight contributors (https://apecode.ai)",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r --parallel exec tsc -b",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "demo": "node scripts/demo.mjs",
+    "demo:zh": "node scripts/demo.mjs zh",
+    "dev:web": "pnpm --filter @finsight/web dev"
+  },
+  "engines": { "node": ">=22" }
+}

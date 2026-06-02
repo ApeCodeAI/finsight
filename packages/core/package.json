@@ -1,0 +1,35 @@
+{
+  "name": "@finsight/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.0",
+    "better-sqlite3": "^11.9.0",
+    "ulid": "^2.3.0",
+    "xlsx": "^0.18.5",
+    "yaml": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "tsup": "^8.5.0",
+    "vitest": "^3.2.0",
+    "typescript": "^5.8.0",
+    "drizzle-kit": "^0.31.0"
+  },
+  "description": "FinSight core — schema, services, ledger, config, i18n. Vault YAML is truth, SQLite is cache.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApeCodeAI/finsight.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/ApeCodeAI/finsight/tree/main/packages/core#readme",
+  "bugs": "https://github.com/ApeCodeAI/finsight/issues",
+  "license": "Apache-2.0",
+  "author": "FinSight contributors"
+}

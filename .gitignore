@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+# Local SQLite data only; source `src/data/` (constants, ticker map) must not be ignored.
+/data/
+*.db
+*.db-journal
+.turbo
+.env
+# tsc -b incremental build cache
+*.tsbuildinfo
+
+# macOS metadata
+.DS_Store

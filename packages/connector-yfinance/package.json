@@ -1,0 +1,26 @@
+{
+  "name": "@finsight/connector-yfinance",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run --passWithNoTests"
+  },
+  "description": "Yahoo Finance quote + FX + crypto fetcher for FinSight. No API key required.",
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "vitest": "^3.2.0",
+    "typescript": "^5.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApeCodeAI/finsight.git",
+    "directory": "packages/connector-yfinance"
+  },
+  "homepage": "https://github.com/ApeCodeAI/finsight/tree/main/packages/connector-yfinance#readme",
+  "bugs": "https://github.com/ApeCodeAI/finsight/issues",
+  "license": "Apache-2.0",
+  "author": "FinSight contributors"
+}

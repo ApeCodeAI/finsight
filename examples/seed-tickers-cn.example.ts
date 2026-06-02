@@ -1,0 +1,54 @@
+/**
+ * Sample ticker mapping for Chinese investors who track holdings via vault
+ * markdown using Chinese names (拼多多 / 小米 / 微软 / etc).
+ *
+ * To use this in your own setup:
+ *   1. Create `<ledger_dir>/tickers.yaml` with the contents below (YAML form).
+ *   2. Run `finsight import vault-md <your-file>` — Chinese names will be
+ *      translated to the canonical tickers automatically.
+ *
+ * Alternative: paste this object into a fork of
+ * `packages/core/src/data/ticker-map.ts` if you want it baked into your build.
+ */
+
+export const SEED_TICKERS_CN = {
+  // ── 美股 ────────────────────────────────────────────────────────────────
+  拼多多: { ticker: "PDD", name: "拼多多 / PDD Holdings", quote_currency: "USD" },
+  微软: { ticker: "MSFT", name: "Microsoft", quote_currency: "USD" },
+  "伯克希尔 B": { ticker: "BRK.B", name: "Berkshire Hathaway B", quote_currency: "USD" },
+  京东: { ticker: "JD", name: "京东 / JD.com", quote_currency: "USD" },
+  多邻国: { ticker: "DUOL", name: "Duolingo", quote_currency: "USD" },
+  理想汽车: { ticker: "LI", name: "理想汽车 / Li Auto", quote_currency: "USD" },
+  霸王茶姬: { ticker: "CHA", name: "霸王茶姬 / Chagee Holdings", quote_currency: "USD" },
+
+  // ── 港股 ────────────────────────────────────────────────────────────────
+  小米: { ticker: "1810.HK", name: "小米集团", quote_currency: "HKD" },
+  美团: { ticker: "3690.HK", name: "美团", quote_currency: "HKD" },
+  心动公司: { ticker: "2400.HK", name: "心动公司", quote_currency: "HKD" },
+
+  // ── 加密 ────────────────────────────────────────────────────────────────
+  BTC: { ticker: "BTC", name: "Bitcoin", quote_currency: "USDT" },
+  ETH: { ticker: "ETH", name: "Ethereum", quote_currency: "USDT" },
+  USDT: { ticker: "USDT", name: "Tether USD", quote_currency: "USD" },
+  SOL: { ticker: "SOL", name: "Solana", quote_currency: "USDT" },
+};
+
+export const SEED_FUND_NAMES_CN = {
+  "110020": "易方达沪深300ETF联接A",
+  "008763": "天弘越南市场股票QDII A",
+  "012348": "天弘恒生科技ETF联接QDII A",
+  "100050": "富国全球债券QDII A",
+  "006105": "宏利印度机会股票QDII A",
+  "161725": "招商证券白酒指数LOF A",
+  "017970": "摩根海外稳健配置混合QDII FOF人民币A",
+  "050025": "博时标普500ETF联接A",
+  "040046": "华安纳斯达克100指数A",
+  "000968": "广发中证养老",
+  "005313": "万家中证1000指数增强A",
+  "001717": "工银前沿医疗股票",
+  "000248": "汇添富中证主要消费ETF联接",
+  "002656": "南方创业板ETF联接",
+  "090010": "大成中证红利指数A",
+  "009051": "易方达中证红利ETF联接A",
+  "000191": "富国信用债券A",
+};

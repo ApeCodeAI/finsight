@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      - name: Verify skill mentions only real CLI commands
+        run: |
+          # Cheap drift check: every "finsight <cmd>" in the skill should
+          # appear in `finsight --help`. Failing this means the skill is
+          # promising commands that don't exist.
+          set -euo pipefail
+          chmod +x packages/cli/dist/index.js
+          help=$(node packages/cli/dist/index.js --help 2>&1)
+          # Top-level command names appear at the start of help lines after 2 spaces.
+          # Commander prints "name|alias" for aliased commands — split on '|'.
+          known=$(printf '%s\n' "$help" \
+            | awk '/^  [a-z]/ {print $1}' \
+            | tr '|' '\n' \
+            | sort -u)
+          missing=0
+          while read -r cmd; do
+            if ! printf '%s\n' "$known" | grep -qx "$cmd"; then
+              echo "::warning::Skill references '$cmd' but it's not in CLI help"
+              missing=$((missing + 1))
+            fi
+          done < <(grep -oE 'finsight [a-z][a-z-]*' skills/finsight/SKILL.md \
+            | awk '{print $2}' | sort -u)
+          if [ "$missing" -gt 0 ]; then
+            echo "::error::$missing skill command(s) drifted from CLI"
+            exit 1
+          fi
+          echo "Skill drift check passed."

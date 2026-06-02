@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/**
+ * [INPUT]: tokens.css (open-design dashboard tokens) + tailwindcss v4
+ * [OUTPUT]: 全局基础样式 + Tailwind @theme 映射 + shadcn 兼容变量
+ * [POS]: shared/styles/globals.css，由 main.tsx 顶层导入
+ * [RUNTIME]: client (Vite build)
+ * [PROTOCOL]: 改色/字体先改 tokens.css；改 Tailwind @theme 映射需更新本文件头部
+ */
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--fg);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--fg);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-on);
+  --color-secondary: var(--surface-warm);
+  --color-secondary-foreground: var(--fg);
+  --color-muted: var(--surface-warm);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface-warm);
+  --color-accent-foreground: var(--fg);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #ffffff;
+  --color-success: var(--success);
+  --color-warning: var(--warn);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    line-height: var(--leading-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
+  }
+  .font-mono, code, kbd, pre, samp {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .card-flat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+  .card-raised {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--elev-raised);
+  }
+  .ring-focus:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+  .text-success { color: var(--success); }
+  .text-danger { color: var(--danger); }
+  .text-warn { color: var(--warn); }
+  .text-muted { color: var(--muted); }
+  .text-meta { color: var(--meta); }
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@finsight/connector-tiantian",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run --passWithNoTests"
+  },
+  "description": "天天基金 (Tiantian) NAV fetcher — China onshore fund 6-digit codes, no API key.",
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "vitest": "^3.2.0",
+    "typescript": "^5.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ApeCodeAI/finsight.git",
+    "directory": "packages/connector-tiantian"
+  },
+  "homepage": "https://github.com/ApeCodeAI/finsight/tree/main/packages/connector-tiantian#readme",
+  "bugs": "https://github.com/ApeCodeAI/finsight/issues",
+  "license": "Apache-2.0",
+  "author": "FinSight contributors"
+}

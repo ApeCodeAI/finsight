@@ -1,0 +1,101 @@
+# Demo portfolio — US-leaning investor, USD base currency.
+# Mirrors the shape `finsight ledger sync` produces.
+
+schema_version: 1
+accounts:
+  - id: schwab-brokerage
+    name: Schwab Brokerage
+    type: brokerage
+    institution: Charles Schwab
+    currency: USD
+    cash_balance: 3500.00
+    tags: [demo]
+    is_active: true
+    notes: Long-term holdings, IRA rollover lives here too.
+    positions:
+      - symbol: VOO
+        name: Vanguard S&P 500 ETF
+        currency: USD
+        quantity: 40
+        avg_cost: 380.50
+        current_price: 525.00
+      - symbol: VXUS
+        name: Vanguard Total International Stock ETF
+        currency: USD
+        quantity: 80
+        avg_cost: 55.20
+        current_price: 65.40
+      - symbol: AAPL
+        name: Apple Inc.
+        currency: USD
+        quantity: 20
+        avg_cost: 145.00
+        current_price: 220.00
+      - symbol: NVDA
+        name: NVIDIA Corp
+        currency: USD
+        quantity: 10
+        avg_cost: 320.00
+        current_price: 920.00
+
+  - id: fidelity-401k
+    name: Fidelity 401(k)
+    type: brokerage
+    institution: Fidelity
+    currency: USD
+    cash_balance: 1200.00
+    tags: [demo, retirement]
+    is_active: true
+    notes: Target-date 2055 fund + employer match.
+    positions:
+      - symbol: FXIFX
+        name: Fidelity Freedom Index 2055 Fund
+        currency: USD
+        quantity: 850.5
+        avg_cost: 22.40
+        current_price: 24.10
+
+  - id: chase-checking
+    name: Chase Checking
+    type: bank
+    institution: Chase
+    currency: USD
+    cash_balance: 8200.50
+    tags: [demo]
+    is_active: true
+    notes: Day-to-day spending.
+    positions: []
+
+  - id: ally-savings
+    name: Ally HYSA
+    type: bank
+    institution: Ally
+    currency: USD
+    cash_balance: 25000.00
+    tags: [demo, emergency-fund]
+    is_active: true
+    notes: 4.0% APY emergency fund.
+    positions: []
+
+  - id: coinbase-pro
+    name: Coinbase
+    type: exchange
+    institution: Coinbase
+    currency: USDT
+    cash_balance: 0
+    tags: [demo, crypto]
+    is_active: true
+    notes: Small crypto allocation.
+    positions:
+      - symbol: BTC
+        name: Bitcoin
+        currency: USDT
+        quantity: 0.05
+        avg_cost: 28000.00
+        current_price: 62000.00
+      - symbol: ETH
+        name: Ethereum
+        currency: USDT
+        quantity: 1.2
+        avg_cost: 1850.00
+        current_price: 3100.00
