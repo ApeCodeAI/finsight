@@ -4,8 +4,8 @@ import { input } from "@inquirer/prompts";
 import {
   listAccounts,
   listPositions,
-  getNetWorth,
-  toBase,
+  getAccountValuation,
+  getBaseCurrency,
   recordReconciliation,
   listReconciliations,
 } from "@finsight/core";
@@ -28,16 +28,16 @@ export const reconcileCmd = new Command("reconcile")
       accs.find((a) => a.name.toLowerCase().includes(lower));
     if (!acc) fail("NOT_FOUND", `Account not found: ${accountName}`, { json: opts.json });
 
-    // Compute account total in account currency
+    // Convert cash and every position into one currency before comparing with
+    // the broker's total. A broker account may hold multiple currencies.
     const accPositions = listPositions(db, acc.id);
-    const positionsNative = accPositions.reduce(
-      (s, p) => s + p.current_price * p.quantity,
-      0,
-    );
-    const computedNative = acc.balance + positionsNative;
-    const nw = getNetWorth(db);
-    const slice = nw.byAccount.find((a) => a.id === acc.id);
-    const computedBase = slice?.balance_base ?? toBase(db, computedNative, acc.currency);
+    const valuation = getAccountValuation(db, acc.id, acc.currency);
+    if (!valuation) {
+      fail("NOT_FOUND", `Account not found: ${accountName}`, { json: opts.json });
+    }
+    const computedTotal = valuation.amount;
+    const reconcileCurrency = valuation.currency;
+    const baseValuation = getAccountValuation(db, acc.id, getBaseCurrency());
 
     // Get broker_total
     let brokerTotal: number;
@@ -52,25 +52,25 @@ export const reconcileCmd = new Command("reconcile")
       console.log(chalk.bold(`  Reconcile · ${acc.name}`));
       console.log(
         chalk.dim(
-          `  FinSight computed: ${formatCurrency(computedNative, acc.currency)} (${acc.currency})`,
+          `  FinSight computed: ${formatCurrency(computedTotal, reconcileCurrency)} (${reconcileCurrency})`,
         ),
       );
       console.log();
       const raw = await input({
-        message: `Total shown in your broker (${acc.currency}):`,
+        message: `Total shown in your broker (${reconcileCurrency}):`,
       });
       brokerTotal = Number(raw);
       if (Number.isNaN(brokerTotal))
         fail("USER_ERROR", `Invalid amount: ${raw}`, { json: opts.json });
     }
 
-    const delta = brokerTotal - computedNative;
-    const pct = computedNative !== 0 ? delta / computedNative : 0;
+    const delta = brokerTotal - computedTotal;
+    const pct = computedTotal !== 0 ? delta / computedTotal : 0;
 
     const row = recordReconciliation(db, {
       account_id: acc.id,
-      currency: acc.currency,
-      computed_total: computedNative,
+      currency: reconcileCurrency,
+      computed_total: computedTotal,
       broker_total: brokerTotal,
       notes: opts.note,
     });
@@ -80,9 +80,9 @@ export const reconcileCmd = new Command("reconcile")
         ok: true,
         reconciliation: row,
         account: acc.name,
-        currency: acc.currency,
+        currency: reconcileCurrency,
         delta_pct: pct,
-        computed_total_base: computedBase,
+        computed_total_base: baseValuation?.amount ?? computedTotal,
         positions_with_fallback_price: accPositions.filter((p) => p.current_price === 0)
           .length,
       });
@@ -90,13 +90,13 @@ export const reconcileCmd = new Command("reconcile")
     }
 
     const t = createTable(["", "Amount"]);
-    t.push(["Broker shows", formatCurrency(brokerTotal, acc.currency)]);
-    t.push(["FinSight computed", formatCurrency(computedNative, acc.currency)]);
+    t.push(["Broker shows", formatCurrency(brokerTotal, reconcileCurrency)]);
+    t.push(["FinSight computed", formatCurrency(computedTotal, reconcileCurrency)]);
     const color = Math.abs(pct) < 0.01 ? chalk.green : Math.abs(pct) < 0.05 ? chalk.yellow : chalk.red;
     t.push([
       "Δ",
       color(
-        `${delta >= 0 ? "+" : ""}${formatCurrency(delta, acc.currency)} (${(pct * 100).toFixed(2)}%)`,
+        `${delta >= 0 ? "+" : ""}${formatCurrency(delta, reconcileCurrency)} (${(pct * 100).toFixed(2)}%)`,
       ),
     ]);
     console.log(t.toString());
