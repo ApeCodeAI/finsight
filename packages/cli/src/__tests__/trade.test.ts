@@ -88,6 +88,7 @@ describe("trade timestamp option", () => {
       "200",
       "--traded-at",
       tradedAt,
+      "--no-warn",
       "--json",
     );
 
@@ -112,6 +113,7 @@ describe("trade timestamp option", () => {
       "200",
       "--date",
       "2025-11-15",
+      "--no-warn",
       "--json",
     );
 
