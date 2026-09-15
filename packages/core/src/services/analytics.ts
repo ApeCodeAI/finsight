@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { ulid } from "ulid";
 import { exchange_rates } from "../db/schema.js";
 import type { AppDatabase } from "../db/connection.js";
@@ -42,19 +42,31 @@ export function upsertFxRate(
   to: string,
   rate: number,
 ): { previous?: number } {
-  const existing = db
+  const date = new Date().toISOString().slice(0, 10);
+  const ts = new Date().toISOString();
+  const latest = db
     .select()
     .from(exchange_rates)
     .where(and(eq(exchange_rates.from_currency, from), eq(exchange_rates.to_currency, to)))
+    .orderBy(desc(exchange_rates.rate_date), desc(exchange_rates.created_at))
     .get();
-  const date = new Date().toISOString().slice(0, 10);
-  const ts = new Date().toISOString();
-  if (existing) {
+  const existingToday = db
+    .select()
+    .from(exchange_rates)
+    .where(
+      and(
+        eq(exchange_rates.from_currency, from),
+        eq(exchange_rates.to_currency, to),
+        eq(exchange_rates.rate_date, date),
+      ),
+    )
+    .get();
+  if (existingToday) {
     db.update(exchange_rates)
-      .set({ rate, rate_date: date })
-      .where(eq(exchange_rates.id, existing.id))
+      .set({ rate, created_at: ts })
+      .where(eq(exchange_rates.id, existingToday.id))
       .run();
-    return { previous: existing.rate };
+    return { previous: latest?.rate };
   }
   db.insert(exchange_rates)
     .values({
@@ -66,7 +78,7 @@ export function upsertFxRate(
       created_at: ts,
     })
     .run();
-  return {};
+  return { previous: latest?.rate };
 }
 
 /** Public: convert an amount in `currency` to the configured base currency. */
@@ -88,20 +100,43 @@ function fallbackRate(from: string, to: string): number | undefined {
   return undefined;
 }
 
-function getRate(db: AppDatabase, from: string, to: string): number {
-  if (from === to) return 1;
-  const rate = db
+function getStoredRate(
+  db: AppDatabase,
+  from: string,
+  to: string,
+): number | undefined {
+  const direct = db
     .select()
     .from(exchange_rates)
     .where(and(eq(exchange_rates.from_currency, from), eq(exchange_rates.to_currency, to)))
+    .orderBy(desc(exchange_rates.rate_date), desc(exchange_rates.created_at))
     .get();
-  if (rate) return rate.rate;
+  if (direct) return direct.rate;
+
   const reverse = db
     .select()
     .from(exchange_rates)
     .where(and(eq(exchange_rates.from_currency, to), eq(exchange_rates.to_currency, from)))
+    .orderBy(desc(exchange_rates.rate_date), desc(exchange_rates.created_at))
     .get();
-  if (reverse) return 1 / reverse.rate;
+  return reverse ? 1 / reverse.rate : undefined;
+}
+
+function getRate(db: AppDatabase, from: string, to: string): number {
+  if (from === to) return 1;
+
+  const stored = getStoredRate(db, from, to);
+  if (stored !== undefined) return stored;
+
+  const base = getBaseCurrency();
+  if (from !== base && to !== base) {
+    const fromToBase = getStoredRate(db, from, base);
+    const toToBase = getStoredRate(db, to, base);
+    if (fromToBase !== undefined && toToBase !== undefined) {
+      return fromToBase / toToBase;
+    }
+  }
+
   const fb = fallbackRate(from, to);
   if (fb !== undefined) return fb;
   return 1;
@@ -122,6 +157,26 @@ export interface NetWorth {
   total: number;
   currency: string;
   byAccount: NetWorthAccount[];
+}
+
+/** Value one account in a target currency, including mixed-currency positions. */
+export function getAccountValuation(
+  db: AppDatabase,
+  accountId: string,
+  targetCurrency: string,
+): { amount: number; currency: string } | null {
+  const acc = listAccounts(db, { includeInactive: true }).find(
+    (candidate) => candidate.id === accountId,
+  );
+  if (!acc) return null;
+
+  const cashValue = acc.balance * getRate(db, acc.currency, targetCurrency);
+  const positionsValue = listPositions(db, acc.id).reduce((sum, position) => {
+    const rate = getRate(db, position.currency, targetCurrency);
+    return sum + position.current_price * position.quantity * rate;
+  }, 0);
+
+  return { amount: cashValue + positionsValue, currency: targetCurrency };
 }
 
 export function getNetWorth(db: AppDatabase): NetWorth {
