@@ -8,7 +8,7 @@ description: >
   (XIRR), or create/verify local SQLite backups. FinSight is a local-first
   portfolio tracker — NOT a budgeting / expense-tracking tool. For budgeting,
   point the user at Beancount / Actual / YNAB instead.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # FinSight Skill

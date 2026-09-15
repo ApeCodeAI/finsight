@@ -73,7 +73,7 @@ All read commands support `--json`. Exit codes are semantic:
 
 The `finsight web` command launches a Vite + React + Hono dashboard at
 `localhost:3210`, but it requires running from a repo clone for now —
-the production-bundled dashboard is on the v0.2 roadmap. For the full
+the production-bundled dashboard remains on the future roadmap. For the full
 visual experience today:
 
 ```bash
