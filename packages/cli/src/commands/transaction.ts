@@ -1,3 +1,11 @@
+/**
+ * [INPUT]: transaction service rows and confirmation arguments.
+ * [OUTPUT]: human-readable and JSON transaction review/confirmation commands.
+ * [POS]: public CLI transaction inspection layer.
+ * [RUNTIME]: server / CLI.
+ * [PROTOCOL]: review output preserves the complete traded_at value when one
+ *             was supplied; date-only rows remain unchanged.
+ */
 import { Command } from "commander";
 import chalk from "chalk";
 import {
@@ -28,7 +36,15 @@ transactionCmd
       printSuccess("All transactions are confirmed.");
       return;
     }
-    const t = createTable(["ID", "Type", "Symbol", "Qty", "Price", "Source", "Date"]);
+    const t = createTable([
+      "ID",
+      "Type",
+      "Symbol",
+      "Qty",
+      "Price",
+      "Source",
+      "Traded At",
+    ]);
     for (const tx of pending) {
       t.push([
         tx.id.slice(-12),
@@ -37,7 +53,7 @@ transactionCmd
         tx.quantity?.toString() ?? "—",
         tx.price ? formatCurrency(tx.price, tx.currency) : "—",
         tx.price_source ?? "—",
-        tx.traded_at.slice(0, 10),
+        tx.traded_at,
       ]);
     }
     console.log(t.toString());

@@ -238,10 +238,14 @@ finsight trade buy <acc> PDD 100              # 自动抓今天的收盘价
 finsight trade buy <acc> 110020 --amount 1000 # 基金：按金额买，--amount 必填
 finsight trade buy <acc> PDD 100 --price 82.5 # 指定成本价
 finsight trade buy <acc> PDD 100 --date 2025-11-15
+finsight trade buy <acc> PDD 100 --traded-at 2025-11-15T09:30:00+08:00 # 可选：保存完整成交时间
 finsight trade list --needs-review            # 价格是自动猜的，回头确认一下
 finsight transaction confirm <id> --price 84  # 把猜的价格替换成真实值
 finsight balance update <acc> 250000
 ```
+
+完整成交时间是可选的：`--traded-at` 会原样保存 ISO 时间戳；只使用日期的
+`--date` 工作流仍然有效。
 
 **刷新价格**
 ```bash

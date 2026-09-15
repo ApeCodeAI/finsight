@@ -26,6 +26,7 @@ related changes, breaking changes can land in `0.x → 0.y`.
   with SHA-256 metadata and restrictive local file permissions.
 - `finsight backup verify <file>` verifies an existing native SQLite backup.
 - Mixed-currency account valuation and reconciliation now have regression tests.
+- `trade buy` and `trade sell` accept optional verbatim ISO execution timestamps via `--traded-at`; date-only workflows remain supported.
 
 ## [0.1.0] — 2026-06-02 — Initial public release
 
