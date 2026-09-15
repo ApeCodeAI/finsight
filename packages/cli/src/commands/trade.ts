@@ -167,7 +167,9 @@ interface BuyOpts {
   date?: string;
   tradedAt?: string;
   noQuote?: boolean;
+  quote?: boolean;
   noWarn?: boolean;
+  warn?: boolean;
   yes?: boolean;
   json?: boolean;
   // Decision integration
@@ -213,7 +215,7 @@ async function checkDeviationOk(
 ): Promise<boolean> {
   if (resolved.source !== "user_provided") return true;
   if (!resolved.reference) return true;
-  if (opts.noWarn) return true;
+  if (opts.noWarn || opts.warn === false) return true;
   const diff = Math.abs(resolved.price - resolved.reference);
   const pct = diff / resolved.reference;
   if (pct < DEFAULT_DEVIATION_THRESHOLD) return true;
@@ -278,7 +280,7 @@ tradeCmd
 
     let resolved: ResolvedPrice;
     let userPriceIgnored = false;
-    if (opts.noQuote) {
+    if (opts.noQuote || opts.quote === false) {
       if (userPrice == null) {
         fail("USER_ERROR", "--no-quote requires --price", { json: opts.json });
       }
@@ -471,7 +473,7 @@ tradeCmd
 
     let resolved: ResolvedPrice;
     let userPriceIgnored = false;
-    if (opts.noQuote) {
+    if (opts.noQuote || opts.quote === false) {
       if (userPrice == null) {
         fail("USER_ERROR", "--no-quote requires --price", { json: opts.json });
       }
