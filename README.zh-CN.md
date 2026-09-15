@@ -72,7 +72,7 @@ Demo 会在 `/tmp/finsight-demo` 创建一个一次性沙箱，加载样例组�
 `~/.finsight/` 配置。
 
 > Web dashboard（`finsight web`）目前只能从 clone 仓库跑 —— 生产构建版的
-> dashboard 是 v0.2 的 roadmap。现在 `npm install -g finsight` 装好的是
+> dashboard 仍在后续 roadmap 中。现在 `npm install -g finsight` 装好的是
 > 完整 CLI + AI 集成；想要可视化 dashboard 就 clone 仓库。
 
 ## 🔭 同一份数据，三个看法

@@ -81,7 +81,7 @@ portfolio, and opens the dashboard. Quit it (Ctrl+C) and the sandbox is wiped â€
 nothing touches your real config.
 
 > The web dashboard (`finsight web`) currently runs from a repo clone only â€”
-> the production-bundled dashboard is on the v0.2 roadmap. For now,
+> a production-bundled dashboard remains on the future roadmap. For now,
 > `npm install -g finsight` gives you the full CLI + AI integration; clone
 > the repo if you also want the visual dashboard.
 

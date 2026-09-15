@@ -5,7 +5,7 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). We use
 [SemVer](https://semver.org/) for versioning — `0.x` releases batch
 related changes, breaking changes can land in `0.x → 0.y`.
 
-## [Unreleased]
+## [0.2.0] — 2026-09-15 — SQLite-first local MVP
 
 ### Changed
 
@@ -15,12 +15,17 @@ related changes, breaking changes can land in `0.x → 0.y`.
   automatically synchronized and is not the canonical recovery format.
 - `doctor` checks SQLite integrity and reads the database without migrations or
   writes. `init` refuses to load demo data into a populated portfolio database.
+- FX lookups use the latest stored dated rate, preserve same-day update history,
+  and derive stored cross-currency rates through the configured base currency.
+- Broker reconciliation converts cash and each position before comparing a
+  mixed-currency account with the broker total.
 
 ### Added
 
 - `finsight backup create` creates an integrity-checked native SQLite backup
   with SHA-256 metadata and restrictive local file permissions.
 - `finsight backup verify <file>` verifies an existing native SQLite backup.
+- Mixed-currency account valuation and reconciliation now have regression tests.
 
 ## [0.1.0] — 2026-06-02 — Initial public release
 
@@ -74,4 +79,5 @@ working copy, every command outputs JSON for AI tools.
   Interactive Brokers / Tiger / Futu are on the roadmap. New connectors
   are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
+[0.2.0]: https://github.com/ApeCodeAI/finsight/releases/tag/v0.2.0
 [0.1.0]: https://github.com/ApeCodeAI/finsight/releases/tag/v0.1.0
