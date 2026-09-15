@@ -1,3 +1,11 @@
+/**
+ * [INPUT]: Commander arguments, core transaction services, and quote connectors.
+ * [OUTPUT]: stock/fund trade, cashflow, transfer, and transaction-list CLI commands.
+ * [POS]: public CLI command layer; delegates persistence and valuation to core.
+ * [RUNTIME]: server / CLI.
+ * [PROTOCOL]: --date remains date-only compatible; --traded-at is optional and
+ *             is stored verbatim while its date prefix drives quote lookup.
+ */
 import { Command } from "commander";
 import chalk from "chalk";
 import { confirm } from "@inquirer/prompts";
@@ -22,6 +30,7 @@ import { fetchFundNav, fetchFundNavAt } from "@finsight/connector-tiantian";
 import { initDb } from "../utils/config.js";
 import { createTable, formatCurrency, printSuccess, printInfo } from "../utils/display.js";
 import { emitJson, fail, ExitCode } from "../utils/exit.js";
+import { resolveTradeDates } from "../utils/traded-at.js";
 
 export const tradeCmd = new Command("trade").description("Record and list trades");
 
@@ -156,8 +165,11 @@ interface BuyOpts {
   price?: string;
   amount?: string;
   date?: string;
+  tradedAt?: string;
   noQuote?: boolean;
+  quote?: boolean;
   noWarn?: boolean;
+  warn?: boolean;
   yes?: boolean;
   json?: boolean;
   // Decision integration
@@ -203,7 +215,7 @@ async function checkDeviationOk(
 ): Promise<boolean> {
   if (resolved.source !== "user_provided") return true;
   if (!resolved.reference) return true;
-  if (opts.noWarn) return true;
+  if (opts.noWarn || opts.warn === false) return true;
   const diff = Math.abs(resolved.price - resolved.reference);
   const pct = diff / resolved.reference;
   if (pct < DEFAULT_DEVIATION_THRESHOLD) return true;
@@ -232,6 +244,7 @@ tradeCmd
   .option("--amount <a>", "Trade amount; for funds, qty = amount / NAV")
   .option("--price <p>", "Explicit unit price (stocks only; funds always use NAV)")
   .option("--date <YYYY-MM-DD>", "Historical trade date — fetches the close/NAV on that day")
+  .option("--traded-at <timestamp>", "Optional full ISO execution timestamp; stored verbatim")
   .option("--fee <fee>", "Transaction fee", "0")
   .option("--note <note>", "Trade note")
   .option("--braindump-id <id>", "Braindump note ID")
@@ -250,6 +263,13 @@ tradeCmd
     const acc = findAccountByName(db, accountName);
     if (!acc) fail("NOT_FOUND", `Account not found: ${accountName}`, { json: opts.json });
 
+    let tradeDates: ReturnType<typeof resolveTradeDates>;
+    try {
+      tradeDates = resolveTradeDates(opts.date, opts.tradedAt);
+    } catch (e) {
+      fail("USER_ERROR", e instanceof Error ? e.message : String(e), { json: opts.json });
+    }
+
     const isFund = isFundCode(symbol);
 
     // ── Resolve price ──────────────────────────────────────────────────────
@@ -260,7 +280,7 @@ tradeCmd
 
     let resolved: ResolvedPrice;
     let userPriceIgnored = false;
-    if (opts.noQuote) {
+    if (opts.noQuote || opts.quote === false) {
       if (userPrice == null) {
         fail("USER_ERROR", "--no-quote requires --price", { json: opts.json });
       }
@@ -272,7 +292,7 @@ tradeCmd
         needs_review: 0,
       };
     } else if (isFund) {
-      const out = await resolveFundPrice({ symbol, date: opts.date, userPrice });
+      const out = await resolveFundPrice({ symbol, date: tradeDates.quoteDate, userPrice });
       if (!out.ok) {
         fail("INTERNAL", `Could not fetch NAV: ${out.reason}`, {
           json: opts.json,
@@ -286,7 +306,7 @@ tradeCmd
         acc.currency === "USDT" || acc.currency === "BTC" ? ("crypto" as const) : undefined;
       const out = await resolveStockPrice({
         symbol,
-        date: opts.date,
+        date: tradeDates.quoteDate,
         userPrice,
         hint,
       });
@@ -342,7 +362,7 @@ tradeCmd
     }
 
     const fee = Number(opts.fee ?? "0");
-    const tradedAt = opts.date ?? new Date().toISOString();
+    const tradedAt = tradeDates.tradedAt ?? new Date().toISOString();
 
     const tx = recordBuy(db, {
       account_id: acc.id,
@@ -417,6 +437,7 @@ tradeCmd
   .option("--amount <a>", "Trade amount; for funds, qty = amount / NAV")
   .option("--price <p>", "Explicit unit price (stocks only)")
   .option("--date <YYYY-MM-DD>", "Historical trade date")
+  .option("--traded-at <timestamp>", "Optional full ISO execution timestamp; stored verbatim")
   .option("--fee <fee>", "Transaction fee", "0")
   .option("--note <note>", "Trade note")
   .option("--braindump-id <id>", "Braindump note ID")
@@ -435,7 +456,16 @@ tradeCmd
     const acc = findAccountByName(db, accountName);
     if (!acc) fail("NOT_FOUND", `Account not found: ${accountName}`, { json: opts.json });
 
+    let tradeDates: ReturnType<typeof resolveTradeDates>;
+    try {
+      tradeDates = resolveTradeDates(opts.date, opts.tradedAt);
+    } catch (e) {
+      fail("USER_ERROR", e instanceof Error ? e.message : String(e), { json: opts.json });
+    }
+
     const isFund = isFundCode(symbol);
+
+    // ── Resolve price ──────────────────────────────────────────────────────
     const userPrice = opts.price != null ? Number(opts.price) : undefined;
     if (opts.price != null && Number.isNaN(userPrice)) {
       fail("USER_ERROR", `Invalid --price: ${opts.price}`, { json: opts.json });
@@ -443,7 +473,7 @@ tradeCmd
 
     let resolved: ResolvedPrice;
     let userPriceIgnored = false;
-    if (opts.noQuote) {
+    if (opts.noQuote || opts.quote === false) {
       if (userPrice == null) {
         fail("USER_ERROR", "--no-quote requires --price", { json: opts.json });
       }
@@ -455,7 +485,7 @@ tradeCmd
         needs_review: 0,
       };
     } else if (isFund) {
-      const out = await resolveFundPrice({ symbol, date: opts.date, userPrice });
+      const out = await resolveFundPrice({ symbol, date: tradeDates.quoteDate, userPrice });
       if (!out.ok)
         fail("INTERNAL", `Could not fetch NAV: ${out.reason}`, { json: opts.json });
       resolved = out.resolved;
@@ -463,7 +493,7 @@ tradeCmd
     } else {
       const hint =
         acc.currency === "USDT" || acc.currency === "BTC" ? ("crypto" as const) : undefined;
-      const out = await resolveStockPrice({ symbol, date: opts.date, userPrice, hint });
+      const out = await resolveStockPrice({ symbol, date: tradeDates.quoteDate, userPrice, hint });
       if (!out.ok) fail("INTERNAL", out.reason, { json: opts.json });
       resolved = out.resolved;
     }
@@ -500,7 +530,7 @@ tradeCmd
     }
 
     const fee = Number(opts.fee ?? "0");
-    const tradedAt = opts.date ?? new Date().toISOString();
+    const tradedAt = tradeDates.tradedAt ?? new Date().toISOString();
 
     try {
       const tx = recordSell(db, {
@@ -719,7 +749,7 @@ tradeCmd
       "Price",
       "Source",
       "Fee",
-      "Date",
+      "Traded At",
       "Notes",
     ]);
     for (const tx of txs) {
@@ -731,7 +761,7 @@ tradeCmd
         tx.price ? formatCurrency(tx.price, tx.currency) : "-",
         priceSourceShort(tx.price_source) + (tx.needs_review ? chalk.yellow("*") : ""),
         formatCurrency(tx.fee, tx.currency),
-        tx.traded_at.slice(0, 10),
+        tx.traded_at,
         (tx.notes ?? "-").slice(0, 30),
       ]);
     }

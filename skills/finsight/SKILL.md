@@ -106,6 +106,10 @@ finsight trade buy <account> <symbol> <quantity> \
 
 finsight trade sell <account> <symbol> <quantity> \
   --price 195.00 --json
+
+# Optional full execution timestamp; date-only --date remains valid
+finsight trade buy <account> <symbol> <quantity> \
+  --traded-at 2026-06-10T09:30:00+08:00 --json
 ```
 
 - For funds (6-digit Chinese codes): use `--amount` instead of `--price`; NAV is
@@ -113,6 +117,10 @@ finsight trade sell <account> <symbol> <quantity> \
 - For stocks: pass `--price` if you know it (settlement price). Otherwise the
   closing quote for the trade date is used and the row is flagged
   `needs_review = 1` so the user can fix it later.
+- Full timestamps are optional. `--traded-at` is stored verbatim; without
+  `--date`, its `YYYY-MM-DD` prefix selects the historical quote/NAV date. If
+  both are supplied, `--date` controls lookup and `--traded-at` controls the
+  stored event time. Date-only workflows remain valid.
 
 ### When the user wants to record reasoning
 

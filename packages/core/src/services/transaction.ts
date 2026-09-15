@@ -1,4 +1,12 @@
-import { eq, and, gte, lte } from "drizzle-orm";
+/**
+ * [INPUT]: transaction/account database handles and record/filter inputs.
+ * [OUTPUT]: authoritative transaction rows plus position side effects.
+ * [POS]: core transaction service used by CLI, web, and ledger adapters.
+ * [RUNTIME]: shared / server.
+ * [PROTOCOL]: keep traded_at as the single date-or-timestamp field; date-only
+ *             list bounds include timestamps on the requested calendar day.
+ */
+import { eq, and, gte, lt, lte } from "drizzle-orm";
 import { ulid } from "ulid";
 import { accounts, transactions } from "../db/schema.js";
 import type { AppDatabase } from "../db/connection.js";
@@ -17,6 +25,14 @@ import {
 
 function now() {
   return new Date().toISOString();
+}
+
+function nextDateForExclusiveUpperBound(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
+  date.setUTCDate(date.getUTCDate() + 1);
+  return date.toISOString().slice(0, 10);
 }
 
 /** Provenance of a transaction's `price` field. See schema for semantics. */
@@ -274,7 +290,12 @@ export function listTransactions(
     conditions.push(gte(transactions.traded_at, filters.from));
   }
   if (filters?.to) {
-    conditions.push(lte(transactions.traded_at, filters.to));
+    const nextDate = nextDateForExclusiveUpperBound(filters.to);
+    conditions.push(
+      nextDate
+        ? lt(transactions.traded_at, nextDate)
+        : lte(transactions.traded_at, filters.to),
+    );
   }
 
   if (conditions.length === 0) {

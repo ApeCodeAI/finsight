@@ -261,10 +261,14 @@ finsight trade buy <acc> PDD 100              # auto-fetches today's price
 finsight trade buy <acc> 110020 --amount 1000 # fund: buy by amount, --amount required
 finsight trade buy <acc> PDD 100 --price 82.5 # explicit price
 finsight trade buy <acc> PDD 100 --date 2025-11-15
+finsight trade buy <acc> PDD 100 --traded-at 2025-11-15T09:30:00+08:00 # optional full execution time
 finsight trade list --needs-review            # trades where the price was guessed — confirm later
 finsight transaction confirm <id> --price 84  # replace a guessed price with the real one
 finsight balance update <acc> 250000
 ```
+
+Full execution timestamps are optional: `--traded-at` preserves the supplied
+ISO timestamp, while date-only `--date` workflows remain valid.
 
 **Refresh prices**
 ```bash

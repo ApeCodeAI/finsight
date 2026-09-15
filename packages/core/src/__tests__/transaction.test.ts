@@ -1,3 +1,10 @@
+/**
+ * [INPUT]: isolated SQLite fixtures and transaction service functions.
+ * [OUTPUT]: regression coverage for transaction recording and date filtering.
+ * [POS]: core service tests for the authoritative transactions table.
+ * [RUNTIME]: test.
+ * [PROTOCOL]: traded_at remains a single verbatim date-or-timestamp field.
+ */
 import { describe, it, expect, beforeEach } from "vitest";
 import { getTestDb } from "../db/connection.js";
 import type { AppDatabase } from "../db/connection.js";
@@ -45,6 +52,19 @@ describe("transaction service", () => {
     expect(pos!.avg_cost).toBe(380);
   });
 
+  it("preserves a supplied full timestamp on a buy", () => {
+    const tradedAt = "2026-09-14T15:37:42.123-04:00";
+    const tx = recordBuy(db, {
+      account_id: accountId,
+      symbol: "AAPL",
+      quantity: 2,
+      price: 200,
+      traded_at: tradedAt,
+    });
+
+    expect(tx.traded_at).toBe(tradedAt);
+  });
+
   it("should record buy and update existing position avg_cost", () => {
     recordBuy(db, {
       account_id: accountId,
@@ -81,6 +101,25 @@ describe("transaction service", () => {
 
     const pos = findOpenPosition(db, accountId, "00700.HK");
     expect(pos!.quantity).toBe(50);
+  });
+
+  it("preserves a supplied full timestamp on a sell", () => {
+    recordBuy(db, {
+      account_id: accountId,
+      symbol: "AAPL",
+      quantity: 2,
+      price: 200,
+    });
+    const tradedAt = "2026-09-14T15:37:42Z";
+    const tx = recordSell(db, {
+      account_id: accountId,
+      symbol: "AAPL",
+      quantity: 1,
+      price: 210,
+      traded_at: tradedAt,
+    });
+
+    expect(tx.traded_at).toBe(tradedAt);
   });
 
   it("should throw when selling without position", () => {
@@ -151,5 +190,22 @@ describe("transaction service", () => {
 
     const byAccount = listTransactions(db, { account_id: accountId });
     expect(byAccount).toHaveLength(2);
+  });
+
+  it("includes full timestamps when a date-only upper bound is used", () => {
+    recordBuy(db, {
+      account_id: accountId,
+      symbol: "AAPL",
+      quantity: 1,
+      price: 200,
+      traded_at: "2026-09-14T15:37:42-04:00",
+    });
+
+    const sameDay = listTransactions(db, {
+      from: "2026-09-14",
+      to: "2026-09-14",
+    });
+
+    expect(sameDay).toHaveLength(1);
   });
 });
