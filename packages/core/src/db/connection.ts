@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import * as schema from "./schema.js";
 import { getDbPath as configDbPath } from "../config/index.js";
@@ -167,4 +167,55 @@ export function getDb(dbPath?: string) {
   sqlite.pragma("journal_mode = WAL");
   pushSchema(sqlite);
   return createDb(sqlite);
+}
+
+/** Open an existing database without creating, migrating, or writing to it. */
+export function getReadOnlyDb(dbPath?: string) {
+  const resolvedPath = dbPath ?? configDbPath();
+  const sqlite = new Database(resolvedPath, {
+    readonly: true,
+    fileMustExist: true,
+  });
+  sqlite.pragma("query_only = ON");
+  return createDb(sqlite);
+}
+
+const PORTFOLIO_DATA_TABLES = [
+  "accounts",
+  "positions",
+  "transactions",
+  "snapshots",
+  "exchange_rates",
+  "decisions",
+  "targets",
+  "reconciliations",
+] as const;
+
+/** Inspect an existing database without creating it or applying migrations. */
+export function findPopulatedPortfolioTables(dbPath?: string): string[] {
+  const resolvedPath = dbPath ?? configDbPath();
+  if (!existsSync(resolvedPath)) return [];
+
+  const sqlite = new Database(resolvedPath, {
+    readonly: true,
+    fileMustExist: true,
+  });
+  try {
+    const existingTables = new Set(
+      (
+        sqlite
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+          .all() as Array<{ name: string }>
+      ).map((row) => row.name),
+    );
+    return PORTFOLIO_DATA_TABLES.filter((table) => {
+      if (!existingTables.has(table)) return false;
+      const row = sqlite
+        .prepare(`SELECT 1 AS present FROM "${table}" LIMIT 1`)
+        .get() as { present: number } | undefined;
+      return row?.present === 1;
+    });
+  } finally {
+    sqlite.close();
+  }
 }

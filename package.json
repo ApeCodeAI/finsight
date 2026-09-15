@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local-first, AI-friendly personal portfolio tracker. Plain-text files are the source of truth; every command outputs JSON for AI tools.",
+  "description": "Local-first, AI-friendly personal portfolio tracker. SQLite is the authoritative local store; every command outputs JSON for AI tools.",
   "keywords": [
     "portfolio",
     "personal-finance",
@@ -12,8 +12,7 @@
     "yfinance",
     "ai-friendly",
     "local-first",
-    "vault",
-    "obsidian",
+    "sqlite",
     "cli"
   ],
   "homepage": "https://github.com/ApeCodeAI/finsight#readme",

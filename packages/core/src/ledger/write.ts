@@ -20,33 +20,34 @@ import {
   type LedgerTransaction,
 } from "./types.js";
 
-const README_TEMPLATE = `# finsight ledger
+const README_TEMPLATE = `# FinSight legacy ledger export
 
-这是 finsight 的真相源（file-first）。SQLite 数据库 (~/.finsight/data/finsight.db) 只是从这里重建出来的派生缓存。
+SQLite (~/.finsight/data/finsight.db, unless configured otherwise) is FinSight's sole source of truth.
+This directory is an explicitly generated, lossy interoperability format. It is not a native backup and is never synchronized or imported automatically.
 
-## 文件格式约定
+## File formats
 
-- **YAML** = stateful document / lookup dict（当前状态、人/AI 都能改）
-- **JSONL** = append-only 时间序列（一行一个不可变事件；AI \`jq\` / grep 友好）
-- **Markdown** = prose body + YAML frontmatter
+- **YAML** = exported current state / lookup data
+- **JSONL** = exported time-series rows
+- **Markdown** = exported prose with YAML frontmatter
 
-## 文件说明
+## Files
 
-- \`accounts.yaml\` — 账户元信息 + 嵌套持仓（YAML — 当前状态）
-- \`transactions.jsonl\` — 交易事件流，一行一笔
-- \`snapshots.jsonl\` — 每日净资产快照，一行一日（含 per-account/position 明细）
-- \`fx-rates.jsonl\` — 汇率历史，一行一个 (date, from, to, rate)
-- \`reconciliations.jsonl\` — broker-vs-computed 对账记录
-- \`decisions/YYYY-MM/<ulid>.md\` — 决策日志，markdown body + YAML frontmatter
+- \`accounts.yaml\` — exported account metadata + nested open positions
+- \`transactions.jsonl\` — exported transactions
+- \`snapshots.jsonl\` — exported net-worth snapshots
+- \`fx-rates.jsonl\` — exported (date, from, to, rate) rows
+- \`reconciliations.jsonl\` — exported broker-vs-computed reconciliation rows
+- \`decisions/YYYY-MM/<ulid>.md\` — exported decision entries
 
-## 工作流
+## Commands
 
-- \`finsight ledger init\` — 一次性配置 ledger 目录到 ~/.finsight/config.json
-- \`finsight ledger export\` — 把当前 DB 一次性 dump 到 ledger（迁移用）
-- \`finsight ledger rebuild\` — 强制从 ledger 重建 DB cache
-- \`finsight ledger verify\` — 检查 ledger 和 DB cache 是否一致
+- \`finsight ledger init <dir>\` — configure this optional legacy directory
+- \`finsight ledger sync\` / \`export\` — explicitly export SQLite data here
+- \`finsight ledger verify\` — compare exported row counts with SQLite
+- \`finsight ledger restore --yes\` — explicit, lossy import that wipes supported SQLite tables
 
-每次 finsight 启动时会自动读 ledger 并重建 DB cache。所以你可以放心手编辑 \`accounts.yaml\` —— 下次任何 finsight 命令都会用最新内容。
+For recovery, use \`finsight backup create\` and verify the resulting native SQLite file with \`finsight backup verify <file>\`. Do not treat this ledger as canonical recovery.
 `;
 
 export function writeAccountsFile(

@@ -2,8 +2,8 @@
 /**
  * One-shot demo bootstrap:
  *   1. Build all packages (if dist is missing)
- *   2. Spin up a fresh demo vault + DB in /tmp/finsight-demo
- *   3. Load examples/seed-portfolio.{en,zh}.yaml
+ *   2. Spin up a fresh demo DB in /tmp/finsight-demo
+ *   3. Load synthetic examples/seed-portfolio.{en,zh}.yaml into SQLite
  *   4. Start the web dashboard
  *
  * Usage:
@@ -20,11 +20,8 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const demoDir = "/tmp/finsight-demo";
 const demoDb = path.join(demoDir, "finsight.db");
-const demoVault = path.join(demoDir, "vault");
 
 const variant = (process.argv[2] ?? "en") === "zh" ? "zh" : "en";
-const example = path.join(repoRoot, "examples", `seed-portfolio.${variant}.yaml`);
-const tickersExample = path.join(repoRoot, "examples", "tickers.cn.yaml");
 
 function log(msg) {
   process.stdout.write(`\x1b[36m›\x1b[0m ${msg}\n`);
@@ -68,10 +65,10 @@ if (existsSync(demoDir)) {
   log(`Wiping previous demo at ${demoDir}`);
   rmSync(demoDir, { recursive: true, force: true });
 }
-mkdirSync(demoVault, { recursive: true });
+mkdirSync(demoDir, { recursive: true });
 
 // ── 3. Configure + load demo ──────────────────────────────────────────────
-log("Bootstrapping demo (vault + config + seed data)…");
+log("Bootstrapping demo (SQLite + config + seed data)…");
 const env = {
   ...process.env,
   FINSIGHT_DB_PATH: demoDb,
@@ -87,8 +84,6 @@ exec("node", [
   variant === "zh" ? "zh-CN" : "en-US",
   "--labels-language",
   variant,
-  "--ledger-dir",
-  demoVault,
   "--demo",
   variant,
   "--force",

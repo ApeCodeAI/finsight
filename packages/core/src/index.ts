@@ -1,5 +1,6 @@
 export * from "./db/schema.js";
 export * from "./db/connection.js";
+export * from "./db/backup.js";
 export * from "./types.js";
 export * from "./services/account.js";
 export * from "./services/position.js";

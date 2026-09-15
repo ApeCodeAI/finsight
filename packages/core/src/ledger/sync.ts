@@ -40,7 +40,7 @@ import {
 } from "./types.js";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   DB -> Ledger   (one-shot export, used for initial migration)
+   DB -> Ledger   (explicit legacy interoperability export)
    ─────────────────────────────────────────────────────────────────────── */
 
 export function dumpDbToLedger(db: AppDatabase, root: string): {
@@ -197,7 +197,7 @@ export function dumpDbToLedger(db: AppDatabase, root: string): {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Ledger -> DB   (rebuild cache on startup or via `finsight ledger rebuild`)
+   Ledger -> DB   (explicit legacy, potentially lossy import)
    ─────────────────────────────────────────────────────────────────────── */
 
 export function rebuildDbFromLedger(db: AppDatabase, root: string): {
@@ -211,7 +211,8 @@ export function rebuildDbFromLedger(db: AppDatabase, root: string): {
 } {
   const ledger = readLedger(root);
 
-  // Wipe all tables first to ensure ledger is the SOLE truth.
+  // Legacy import replaces supported SQLite tables. Callers must require
+  // explicit confirmation and warn that the ledger is not lossless.
   db.delete(positions).run();
   db.delete(transactions).run();
   db.delete(snapshots).run();

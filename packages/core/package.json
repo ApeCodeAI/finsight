@@ -22,7 +22,7 @@
     "typescript": "^5.8.0",
     "drizzle-kit": "^0.31.0"
   },
-  "description": "FinSight core — schema, services, ledger, config, i18n. Vault YAML is truth, SQLite is cache.",
+  "description": "FinSight core — authoritative SQLite schema, services, native backups, config, and legacy ledger interoperability.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ApeCodeAI/finsight.git",

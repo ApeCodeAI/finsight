@@ -72,7 +72,7 @@ export const transactions = sqliteTable("transactions", {
 // ── decisions ─────────────────────────────────────────────
 //  Investment decisions, theses, retrospectives, and daily notes — anything
 //  the user wants to reason about that's *not* a price-changing event.
-//  Stored in DB; `finsight ledger sync` mirrors each row to a markdown file
+//  Stored in DB; an explicit legacy `finsight ledger sync` can export each row
 //  under `ledger/decisions/<date>-<slug>.md`.
 export const decisions = sqliteTable("decisions", {
   id: text("id").primaryKey(),

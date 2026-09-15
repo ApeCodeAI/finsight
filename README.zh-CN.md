@@ -36,18 +36,20 @@ Built by **[ApeCode.ai](https://apecode.ai)** · Sponsored by **[BytePass.ai](ht
 
 FinSight 走另一条路：
 
-- 🗂 **你的文件就是真相。** 持仓存在你硬盘上的纯文本里（YAML，人能读懂），用 `git` 备份，任何编辑器都能改，任何机器都能打开。App 里那个数据库只是工作副本。
+- 🗂 **SQLite 是事实源。** 持仓、交易、快照和决策都保存在本机
+  `~/.finsight/data/finsight.db`。需要恢复点时，运行
+  `finsight backup create` 创建经过完整性检查的原生备份。
 - 🌍 **基准币你说了算。** USD / CNY / JPY / EUR，挑一个，其他币种自动换算到这个。没有地区锁定。
 - 🤖 **AI 是一等用户。** 每个命令都能输出结构化 JSON；仓库里有一个 markdown 文件（叫 [skill](./skills/finsight/SKILL.md)），任何 AI 助手（Claude / Cursor / Codex / ChatGPT）读完就知道怎么帮你操作。
 - 🔒 **数据不出本机。** 无云端、无注册、无埋点。Dashboard 默认只跑在 `localhost`。
 
-> 一个好的投资追踪工具，应该先是一个文件格式，然后是命令行，最后才是 Dashboard。
+> 一个好的投资追踪工具，应该本地优先、命令行友好，而且方便 AI agent 检查和操作。
 
 ## ⚡ 安装
 
 ```bash
 npm install -g finsight
-finsight init        # 问你基准币、地区、文件存哪里
+finsight init        # 问你基准币和地区
 finsight overview    # 看你的组合
 ```
 
@@ -109,12 +111,12 @@ $ finsight overview --json | jq
 
 | 维度 | 大多数工具 | FinSight |
 |---|---|---|
-| 数据存哪儿 | 它的云 | 你的笔记本上，纯文本文件 |
-| 真相在谁手里 | 它的数据库 | 你的文件；App 的 DB 只是副本 |
+| 数据存哪儿 | 它的云 | 你的笔记本上，本地 SQLite 数据库 |
+| 真相在谁手里 | 它的数据库 | 你的本地 SQLite 数据库 |
 | AI 怎么用 | 也许给你一个聊天框 | 有文档的 JSON 输出，任何 AI 都能读 |
 | 基准币 | 写死 | `finsight config set base-currency JPY` |
-| Schema 变化 | 它的迁移脚本 | 你自己改文件 |
-| 备份 | 绑在它身上 | `git commit` 你的文件夹 |
+| Schema 变化 | 它的迁移脚本 | 本地 SQLite 迁移 |
+| 备份 | 绑在它身上 | `finsight backup create` |
 | 账户模型 | 必须注册 | 没有 —— 以你的身份在你机器上跑 |
 
 ## 🎯 在做什么 / 不在做什么
@@ -174,18 +176,14 @@ finsight context --json      # 结构化数据，给自主 agent 用
          └─────────┬───────────┴─────────┬───────────┘
                    │                     │
               ┌────▼─────┐         ┌─────▼─────┐
-              │ Hono API │ ◄─────► │  SQLite   │   ← 工作副本
-              └────┬─────┘         └─────▲─────┘
+              │ Hono API │ ◄─────► │  SQLite   │   ← 本地事实源
+              └────┬─────┘         └─────┬─────┘
                    │                     │
-                   │              finsight ledger sync (每日)
+                   │              backup create / verify
                    │                     ▼
                    │             ┌───────────────┐
-                   └────────────►│  你的文件夹   │   ← 真相（git 追踪）
-                                 │  accounts.yaml│
-                                 │  fx-rates.yaml│
-                                 │  transactions │
-                                 │  snapshots/   │
-                                 │  decisions/   │
+                   └────────────►│ 原生 SQLite 备份 │ ← 恢复副本
+                                 │   *.sqlite3   │
                                  └───────────────┘
 ```
 
@@ -203,7 +201,8 @@ finsight config set ledger-dir ~/notes/finance/ledger
 ```
 
 配置存在 `~/.finsight/config.json`，`FINSIGHT_DB_PATH` 环境变量可以
-改 SQLite 工作副本的位置。
+改事实源 SQLite 数据库的位置。`ledger-dir` 是可选的旧版导出/导入
+互操作配置，日常使用不需要配置。
 
 ### 🔒 关于安全
 
@@ -255,10 +254,13 @@ finsight quote update --dry-run               # 预览不写入
 ```bash
 finsight reconcile <acc>                      # 和券商 App 显示的对比
 finsight reconcile log                        # 历史对账记录
-finsight ledger sync                          # 把今天的 DB 镜像存到你文件夹里
-finsight ledger verify                        # 检查 DB 和文件是否一致
-finsight ledger restore --yes                 # 灾难恢复：从文件重建 DB
+finsight backup create --json                 # 创建已校验的原生 SQLite 备份
+finsight backup verify <file> --json          # 验证已有原生备份
+finsight doctor --json                        # 检查数据库完整性和组合状态
 ```
+
+`ledger sync`、`ledger verify`、`ledger restore` 只保留作显式的旧版
+互操作命令。ledger 导出是有损格式，不是规范的灾难恢复路径。
 
 **把组合喂给 LLM**
 ```bash
@@ -313,17 +315,18 @@ provider。新增语言改 `packages/core/src/i18n/index.ts`。完整说明见
 ## 🗃 你文件夹里有什么
 
 ```
-ledger/
-├── README.md            (自动生成)
-├── accounts.yaml        — 你的账户 + 持仓（可以直接手编辑）
-├── fx-rates.yaml        — 币种间的汇率
-├── transactions.jsonl   — 每个事件一行，只追加不修改
-├── snapshots/           — 每日 JSON 快照
-└── decisions/           — 每个投资决策一份 markdown 笔记
+legacy-ledger/             # 只有显式配置 ledger-dir 时才会有
+├── README.md              (自动生成)
+├── accounts.yaml          — 导出的账户和持仓状态
+├── fx-rates.jsonl         — 导出的带日期汇率
+├── transactions.jsonl     — 导出的交易
+├── snapshots.jsonl        — 导出的快照
+├── reconciliations.jsonl  — 导出的对账记录
+└── decisions/             — 导出的决策笔记
 ```
 
-这个结构故意保持简单。把 `accounts.yaml` 喂给任何 AI 问意见；
-买完之后 commit 一下 diff；任意 git 历史点都能 restore 出当时的 DB。
+这是可选的兼容格式，只会在显式执行 ledger 命令时生成，适合检查或
+与旧工具互操作；它不是原生 SQLite 备份，也不会自动导入。
 
 ## 🚧 项目状态
 
