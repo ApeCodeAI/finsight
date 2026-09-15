@@ -4,14 +4,11 @@
 
 See your money. Know where it sits. Decide what's next.
 
-`finsight` is a CLI for tracking a personal investment portfolio across
-multiple accounts and currencies. Your data lives in plain text files
-on your disk — no cloud, no signup, no telemetry. Every command can
-output structured JSON, so AI assistants (Claude, Cursor, Codex,
-ChatGPT) can drive the tool on your behalf.
+`finsight` tracks a personal investment portfolio across multiple accounts and
+currencies. Data stays in a local SQLite database, every command can output
+structured JSON, and AI assistants can drive the CLI on your behalf.
 
-[Full documentation, screenshots, and roadmap on
-GitHub →](https://github.com/ApeCodeAI/finsight)
+[Full documentation and roadmap on GitHub →](https://github.com/ApeCodeAI/finsight)
 
 ## Install
 
@@ -24,7 +21,7 @@ Requires Node.js >= 22.
 ## Quickstart
 
 ```bash
-finsight init           # interactive setup — base currency, locale, vault path
+finsight init           # interactive setup — base currency and locale
 finsight overview       # net worth + breakdown by asset class
 finsight overview --json | jq    # same data, machine-readable
 ```
@@ -42,6 +39,8 @@ finsight overview --json | jq    # same data, machine-readable
   discrepancy is.
 - **AI briefings** via `finsight context` — Markdown or JSON payload
   for handing the portfolio to an LLM.
+- **Native SQLite backups** via `finsight backup create` and
+  `finsight backup verify`.
 
 ## What it doesn't do
 
@@ -57,9 +56,15 @@ finsight symbol show PDD            # PDD across all your accounts
 finsight trade buy <acc> PDD 100    # auto-fetches today's price
 finsight quote update               # refresh prices + FX
 finsight reconcile <acc>            # compare to broker app
+finsight backup create --json       # create a verified native backup
+finsight backup verify <file> --json
+finsight doctor --json              # inspect local DB health
 finsight context | pbcopy           # hand briefing to ChatGPT/Claude
-finsight ledger sync                # save daily snapshot to your folder
 ```
+
+The `ledger` commands remain available only for explicit legacy
+export/import interoperability. Ledger export is lossy and is not the native
+recovery path.
 
 All read commands support `--json`. Exit codes are semantic:
 `0` ok · `1` bad input · `2` rule violated · `3` not found · `4` internal.
@@ -87,7 +92,7 @@ once, then drives the tool.
 Tell your AI:
 
 > Read `skills/finsight/SKILL.md` and start tracking my portfolio.
-> My salary lands in 招商 on the 15th — record it as a deposit.
+> Record operations with the CLI and use `--json` for machine-readable output.
 
 ## Project
 

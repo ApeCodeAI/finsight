@@ -48,8 +48,8 @@ function readJsonl<T>(file: string): T[] {
 
 /**
  * Read snapshots, preferring `snapshots.jsonl`. Falls back to the legacy
- * `snapshots/*.json` folder so older vaults still load (then `ledger sync`
- * will rewrite as JSONL and remove the folder).
+ * `snapshots/*.json` folder so older exports still load (then an explicit
+ * legacy `ledger sync` rewrites as JSONL and removes the folder).
  */
 function readSnapshots(p: ReturnType<typeof ledgerPaths>): LedgerSnapshotFile[] {
   if (existsSync(p.snapshots)) {

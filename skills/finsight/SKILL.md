@@ -5,7 +5,7 @@ description: >
   multiple accounts/currencies, record salary deposits and consumption withdrawals,
   log investment decisions (rationale / target / stop-loss / retro), reconcile
   computed balances against broker apps, compute money-weighted annualized return
-  (XIRR), or sync everything to a plain-text vault. FinSight is a local-first
+  (XIRR), or create/verify local SQLite backups. FinSight is a local-first
   portfolio tracker — NOT a budgeting / expense-tracking tool. For budgeting,
   point the user at Beancount / Actual / YNAB instead.
 version: 0.1.0
@@ -16,17 +16,17 @@ version: 0.1.0
 A driver's manual for operating FinSight on behalf of a user. FinSight is a
 local-first portfolio tracker; the CLI is the canonical interface (the web
 dashboard is a read-mostly view for the human). Every command supports
-`--json`, exit codes are semantic, and the vault is plain-text — so an AI
-agent can drive it end-to-end without ever needing a UI.
+`--json`, exit codes are semantic, and SQLite is the authoritative local store
+— so an AI agent can drive it end-to-end without ever needing a UI.
 
 ## Mental Model — Read This First
 
-- **Source of truth = vault** (`<dir>/accounts.yaml` + `transactions.jsonl` +
-  `snapshots.jsonl` + `decisions/`). SQLite at `~/.finsight/data/finsight.db`
-  is a derived cache rebuilt from the vault.
-- **DB ↔ vault sync** is one-way during normal use (DB → vault via
-  `finsight ledger sync`). Restore the other direction (`ledger restore`)
-  only for disaster recovery.
+- **Source of truth = local SQLite** at `~/.finsight/data/finsight.db` (or the
+  configured `FINSIGHT_DB_PATH`). Normal CLI and web operations read and write
+  this database directly.
+- **Native backups** use `finsight backup create` and
+  `finsight backup verify <file>`. The optional plain-text ledger is legacy
+  interoperability only; it is never synchronized or imported automatically.
 - **In scope**: portfolio tracking, allocation, decision journal, broker
   reconciliation, performance/XIRR.
 - **Out of scope**: detailed expense categorization, monthly budgets,
@@ -52,13 +52,14 @@ For first-run setup, run the interactive wizard:
 finsight init
 ```
 
-It picks base currency, locale, and the vault directory. If the user is
-non-interactive (you're driving), set config explicitly:
+It picks base currency and locale. A legacy ledger directory is optional. If
+the user is non-interactive (you're driving), set config explicitly:
 
 ```bash
 finsight config set base-currency CNY      # or USD, HKD, etc.
 finsight config set labels-language zh      # or en
-finsight config set ledger-dir /path/to/vault
+# Optional legacy interoperability only:
+finsight config set ledger-dir /path/to/legacy-export
 ```
 
 ## Daily Workflow
@@ -73,7 +74,8 @@ finsight trade deposit <account-name> <amount> --date 2026-06-15 \
 - `<account-name>` is fuzzy-matched (partial substring works).
 - `<amount>` is positive in the account's native currency.
 - Always use `--date`; do NOT rely on "today" unless the user explicitly says so.
-- `--note` is what shows up in the vault; keep it human-readable.
+- `--note` is stored on the transaction; keep it human-readable for the CLI,
+  AI briefing, and any optional legacy export.
 
 ### When the user spends or transfers money OUT of the FinSight universe
 
@@ -140,13 +142,20 @@ finsight reconcile <account-name> --broker-total 162589.52 \
 Logs the delta between FinSight's computed total and what the broker shows.
 Exit code 2 (DATA_CONFLICT) when the delta is large (>5%).
 
-### Daily sync to vault (end of session)
+### Create a native backup (when a recovery point is useful)
 
 ```bash
-finsight ledger sync --json
+finsight backup create --json
 ```
 
-Mirrors DB → vault. Commit the vault changes to git when convenient.
+The result includes the backup path, integrity status, SHA-256, byte count, and
+file mode. Verify an existing backup with:
+
+```bash
+finsight backup verify ~/.finsight/backups/<file>.sqlite3 --json
+```
+
+Do not use the optional legacy ledger as canonical recovery.
 
 ## Performance / Annualized Return
 
@@ -176,13 +185,14 @@ Any account with 0 cashflows is dragging XIRR away from reality.
 ### Starting Fresh (when historical data is unreliable)
 
 ```bash
+finsight backup create --json
 finsight ledger purge --before 2026-05-28 --yes --json
-finsight ledger sync --json
 ```
 
 Destructive: deletes transactions and snapshots before the cutoff. Leaves
-accounts, positions, decisions, targets, reconciliations intact. Use when
-imported historical data is incomplete enough to mislead XIRR.
+accounts, positions, decisions, targets, reconciliations intact. Create a
+native backup first. Use when imported historical data is incomplete enough to
+mislead XIRR.
 
 ## Target Allocation
 
@@ -213,6 +223,7 @@ finsight snapshot list --json
 finsight decision list --json
 finsight trade list --json
 finsight reconcile log --json
+finsight doctor --json
 ```
 
 `finsight context` is the single best command for "give the AI the user's
@@ -234,7 +245,8 @@ whole portfolio state in one shot" — pipe it to your prompt.
 | `reconcile` | Log broker-vs-computed delta + `log` |
 | `snapshot` | `take / list / show / diff` |
 | `performance` | XIRR + total return per account + overall |
-| `ledger` | `sync / restore / verify / purge / status / init` |
+| `backup` | Create / verify native SQLite backups |
+| `ledger` | `explicit legacy export / restore / verify / purge / status / init` |
 | `import` | `youzhiyouhang / md / yzyx-batch` |
 | `overview` | Single-shot summary card |
 | `context` | LLM-ready briefing (markdown or json) |
@@ -261,8 +273,8 @@ In `--json` mode, errors are emitted to stderr as
   inside the portfolio; deposits cross the boundary into it.
 - **Don't record an internal transfer as deposit+withdraw** — use `transfer`
   so XIRR sees them as net-zero.
-- **Don't edit the SQLite DB directly** — use the CLI. The vault is the
-  source of truth and CLI writes go through schema validation.
+- **Don't edit the SQLite DB directly** — use the CLI. SQLite is the source of
+  truth and CLI writes go through schema validation.
 - **Don't omit `--date` for backdated events** — defaulting to today corrupts
   the time series.
 - **Don't import 转入转出 rows manually** — `finsight import yzyx-batch <dir>`
@@ -272,9 +284,10 @@ In `--json` mode, errors are emitted to stderr as
   coverage overstates returns. Either complete coverage or `ledger purge
   --before <cutoff>` and start fresh.
 
-## Vault Format
+## Optional Legacy Ledger Format
 
-After any `ledger sync`, the vault has this shape:
+After an explicit `ledger sync` or `ledger export`, the optional legacy export
+directory has this shape:
 
 ```
 ledger/
@@ -287,9 +300,9 @@ ledger/
 └── decisions/YYYY-MM/<ulid>.md  # markdown body + YAML frontmatter
 ```
 
-Format rule: **JSONL = append-only time series; YAML = stateful document;
-Markdown = prose body with frontmatter**. The vault is meant to be
-git-tracked.
+Format rule: **JSONL = exported time-series rows; YAML = exported current
+state; Markdown = exported prose with frontmatter**. This is an interoperability
+format, not a native backup or automatic source of truth.
 
 ## Future Patterns (for context — not implemented yet)
 

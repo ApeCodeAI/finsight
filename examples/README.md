@@ -1,22 +1,45 @@
 # Example portfolios
 
-Drop one of these YAML files into your `ledger_dir` as `accounts.yaml` to bootstrap a demo.
+These YAML files are synthetic demo data. The normal FinSight source of truth is
+local SQLite; examples are loaded by `finsight init --demo` or by the demo
+script.
 
 | File | Profile | Base currency |
 |---|---|---|
 | `seed-portfolio.en.yaml` | US-leaning: VOO / VTI / AAPL / NVDA / cash / BTC | USD |
 | `seed-portfolio.zh.yaml` | China-leaning: A-share funds + HK + US stocks | CNY |
-| `tickers.cn.yaml` | Chinese-name → ticker mapping (drop in ledger as `tickers.yaml`) | — |
+| `tickers.cn.yaml` | Chinese-name → ticker mapping for optional legacy exports | — |
 
 ## Use as demo
 
 ```bash
-finsight ledger init ~/finsight-demo
-cp examples/seed-portfolio.en.yaml ~/finsight-demo/accounts.yaml
-finsight ledger restore --yes
+finsight init --non-interactive \
+  --base-currency USD \
+  --display-locale en-US \
+  --labels-language en \
+  --demo en
 finsight overview
 ```
 
-## Use as template
+Or run the isolated dashboard demo:
 
-Treat these as a starting point — edit account names, paste in your real positions, then `finsight ledger restore --yes`.
+```bash
+pnpm demo
+# pnpm demo zh
+```
+
+The demo uses a temporary database and does not touch the user's real
+`~/.finsight/` data.
+
+## Optional legacy export
+
+If an older tool needs the plain-text representation, configure a directory
+explicitly and export from SQLite:
+
+```bash
+finsight ledger init ~/finsight-legacy-export
+finsight ledger export
+```
+
+The export is for interoperability and inspection. It is not a native backup
+and should not be treated as the canonical recovery source.

@@ -8,8 +8,8 @@ let _db: AppDatabase | null = null;
  *   2. config.db_path in ~/.finsight/config.json
  *   3. default: ~/.finsight/data/finsight.db
  *
- * The vault ledger (when configured) is a daily backup, not the runtime source
- * of truth — see `finsight ledger sync` / `finsight ledger restore`.
+ * SQLite is the sole source of truth. The optional ledger commands are explicit,
+ * legacy export/import interoperability and are never run automatically.
  */
 export function initDb(_opts: { skipRebuild?: boolean } = {}): AppDatabase {
   if (!_db) {

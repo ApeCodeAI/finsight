@@ -1,7 +1,6 @@
 /**
- * File-first ledger schema. The vault directory is the single source of truth;
- * the SQLite database is a derived cache. These types describe what lives
- * inside `<vault>/projects/finsight/ledger/`.
+ * Legacy plain-text interoperability schema. SQLite is FinSight's sole source
+ * of truth; these types describe an explicitly exported/imported ledger.
  *
  * Format rules:
  *   - YAML   = stateful document or lookup dict (one current truth)
@@ -18,8 +17,8 @@
  *   ├── reconciliations.jsonl  ← broker-vs-computed reconciliation events
  *   └── decisions/YYYY-MM/<ulid>.md  ← prose + frontmatter
  *
- * Decision logs (markdown) live in `ledger/decisions/` and are NOT loaded
- * into the DB — they're navigated via Obsidian / git.
+ * This representation is intentionally retained for backwards compatibility
+ * and is not a lossless native backup format.
  */
 
 export const LEDGER_SCHEMA_VERSION = 1;

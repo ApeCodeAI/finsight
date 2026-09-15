@@ -1,8 +1,13 @@
 # Security policy
 
 FinSight is a **local-first, single-user** tool. Your data lives on your
-machine (`~/.finsight/`) and your vault directory. There is no server-side
-component, no telemetry, no account system.
+machine (`~/.finsight/`) in a local SQLite database and optional native backup
+files. There is no cloud account, telemetry, or multi-user account system.
+
+The optional ledger directory is only an explicitly generated legacy
+export/import format. It is not synchronized automatically and is not the
+canonical recovery source; use `finsight backup create` for native recovery
+copies.
 
 That said, a few security-relevant things still apply.
 
@@ -29,8 +34,8 @@ In scope:
   is bound to a non-loopback interface
 - Connector code that mishandles untrusted upstream responses (e.g., quote
   feed returning malicious payloads)
-- Vault/ledger code that could be tricked into writing outside the
-  configured `ledger_dir`
+- Ledger export/import code that could write outside the explicitly configured
+  `ledger_dir`
 
 Out of scope:
 
@@ -44,8 +49,8 @@ Out of scope:
 
 ## Hardening tips for users
 
-- Keep your `ledger_dir` in a private git repo or an encrypted filesystem.
-  It contains your full position list.
+- Keep native backups and any configured `ledger_dir` in a private or encrypted
+  location; they contain portfolio data.
 - Don't pipe `finsight context` into a third-party LLM if you consider your
   portfolio sensitive — `finsight context --json` and the Markdown form
   both include account names and dollar amounts.

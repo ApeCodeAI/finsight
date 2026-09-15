@@ -18,13 +18,14 @@ import { importCmd } from "./commands/import-cmd.js";
 import { overviewCmd } from "./commands/overview.js";
 import { performanceCmd } from "./commands/performance.js";
 import { doctorCmd } from "./commands/doctor.js";
+import { backupCmd } from "./commands/backup.js";
 import { webCmd } from "./commands/web.js";
 
 const program = new Command();
 program
   .name("finsight")
   .description(
-    "Local-first portfolio tracker. Every command supports --json.\n\n" +
+    "Local-first portfolio tracker. SQLite is the authoritative store. Every command supports --json.\n\n" +
       "  AI agents: read `skills/finsight/SKILL.md`, then start with\n" +
       "  `finsight context` (LLM-ready briefing) or `finsight doctor` (health check).",
   )
@@ -49,6 +50,7 @@ program.addCommand(importCmd);
 program.addCommand(overviewCmd);
 program.addCommand(performanceCmd);
 program.addCommand(doctorCmd);
+program.addCommand(backupCmd);
 program.addCommand(webCmd);
 
 program.parse(process.argv);

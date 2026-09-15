@@ -20,13 +20,34 @@ import { createTable, printSuccess, printInfo } from "../utils/display.js";
 import { emitJson, fail, ExitCode } from "../utils/exit.js";
 
 export const ledgerCmd = new Command("ledger").description(
-  "Daily snapshot to vault (db-first; ledger is a periodic backup)",
+  "Legacy vault export/import interoperability (SQLite remains authoritative)",
 );
+
+export function resolveLegacyLedgerDir(
+  requestedDir?: string,
+  configuredDir?: string,
+): string {
+  const candidate = requestedDir?.trim() || configuredDir?.trim();
+  if (!candidate) {
+    throw new Error(
+      "No legacy ledger directory specified. Pass --dir or configure ledger-dir explicitly.",
+    );
+  }
+  return path.resolve(expandHome(candidate));
+}
+
+export function requireLegacyImportConfirmation(confirmed: boolean): void {
+  if (!confirmed) {
+    throw new Error(
+      "Legacy ledger import is lossy and requires --yes after creating a verified SQLite backup.",
+    );
+  }
+}
 
 ledgerCmd
   .command("init")
-  .description("Configure the ledger directory (writes ~/.finsight/config.json)")
-  .argument("<dir>", "Vault ledger directory (e.g. ~/finsight-vault or ~/Documents/Obsidian Vault/finsight)")
+  .description("Configure an optional legacy ledger export/import directory")
+  .argument("<dir>", "Legacy ledger directory")
   .option("--json", "Emit JSON")
   .action((dir, opts) => {
     const resolved = path.resolve(expandHome(dir));
@@ -40,21 +61,21 @@ ledgerCmd
       process.exit(ExitCode.OK);
     }
     printSuccess(`ledger_dir configured: ${resolved}`);
-    printInfo("Daily workflow:");
-    printInfo("  · Run finsight commands normally (writes only to local DB).");
-    printInfo("  · Once a day: `finsight ledger sync` to mirror DB → vault.");
-    printInfo("  · DB lost / corrupted: `finsight ledger restore` to rebuild from vault.");
+    printInfo("SQLite remains the sole source of truth.");
+    printInfo("Use ledger commands only for explicit legacy export/import interoperability.");
   });
 
 ledgerCmd
   .command("sync")
-  .description("Mirror current DB → vault ledger (run daily as a backup)")
-  .option("--dir <dir>", "Override ledger directory (default: from config)")
+  .description("Legacy export: write current SQLite data to a vault ledger")
+  .option("--dir <dir>", "Override legacy ledger directory (default: from config)")
   .option("--json", "Emit JSON")
   .action((opts) => {
-    const root = path.resolve(expandHome(opts.dir ?? getLedgerDir() ?? ""));
-    if (!root) {
-      fail("USER_ERROR", "No ledger directory configured. Run `finsight ledger init <dir>` first.", {
+    let root: string;
+    try {
+      root = resolveLegacyLedgerDir(opts.dir, getLedgerDir());
+    } catch (error) {
+      fail("USER_ERROR", error instanceof Error ? error.message : String(error), {
         json: opts.json,
       });
     }
@@ -64,25 +85,29 @@ ledgerCmd
       emitJson({ ok: true, dir: root, ...result });
       process.exit(ExitCode.OK);
     }
-    printSuccess(`Synced DB → ${root}`);
+    printSuccess(`Exported SQLite data → legacy ledger at ${root}`);
     printInfo(`accounts: ${result.accounts}  ·  positions: ${result.positions}`);
     printInfo(
       `transactions: ${result.transactions}  ·  snapshots: ${result.snapshots}  ·  fx: ${result.fx_rates}  ·  decisions: ${result.decisions ?? 0}  ·  reconciliations: ${result.reconciliations}`,
     );
-    printInfo("Commit the vault changes to git when convenient.");
+    printInfo("This lossy export is not a native backup or source of truth.");
   });
 
 // alias: export is the legacy name for sync (kept for backwards compat with any
 // scripts already calling it)
 ledgerCmd
   .command("export")
-  .description("Alias for `sync` — mirror DB → vault")
-  .option("--dir <dir>", "Override ledger directory")
+  .description("Legacy export: alias for `sync`")
+  .option("--dir <dir>", "Override legacy ledger directory")
   .option("--json", "Emit JSON")
   .action((opts) => {
-    const root = path.resolve(expandHome(opts.dir ?? getLedgerDir() ?? ""));
-    if (!root) {
-      fail("USER_ERROR", "No ledger directory configured.", { json: opts.json });
+    let root: string;
+    try {
+      root = resolveLegacyLedgerDir(opts.dir, getLedgerDir());
+    } catch (error) {
+      fail("USER_ERROR", error instanceof Error ? error.message : String(error), {
+        json: opts.json,
+      });
     }
     const db = initDb();
     const result = dumpDbToLedger(db, root);
@@ -90,12 +115,12 @@ ledgerCmd
       emitJson({ ok: true, dir: root, ...result });
       process.exit(ExitCode.OK);
     }
-    printSuccess(`Synced DB → ${root}`);
+    printSuccess(`Exported SQLite data → legacy ledger at ${root}`);
   });
 
 ledgerCmd
   .command("restore")
-  .description("Rebuild DB from vault ledger (disaster recovery; WIPES local DB)")
+  .description("Legacy import: replace SQLite data from a ledger (LOSSY; WIPES DB)")
   .option("--yes", "Skip confirmation")
   .option("--json", "Emit JSON")
   .action((opts) => {
@@ -106,15 +131,23 @@ ledgerCmd
     if (!existsSync(root)) {
       fail("NOT_FOUND", `Ledger directory not found: ${root}`, { json: opts.json });
     }
-    if (!opts.yes && !opts.json) {
-      process.stderr.write(
-        chalk.yellow(
-          "⚠ This will WIPE the local DB and rebuild from vault.\n" +
-            "  Any CLI writes made since the last `ledger sync` will be lost.\n" +
-            "  Run with --yes to proceed.\n",
-        ),
-      );
-      process.exit(ExitCode.USER_ERROR);
+    if (!opts.yes) {
+      if (!opts.json) {
+        process.stderr.write(
+          chalk.yellow(
+            "⚠ LEGACY LOSSY IMPORT: this will WIPE the authoritative SQLite DB.\n" +
+              "  Ledger files do not preserve every SQLite field or row.\n" +
+              "  First run `finsight backup create` and keep the verified backup.\n",
+          ),
+        );
+      }
+      try {
+        requireLegacyImportConfirmation(false);
+      } catch (error) {
+        fail("USER_ERROR", error instanceof Error ? error.message : String(error), {
+          json: opts.json,
+        });
+      }
     }
     const db = initDb();
     const result = rebuildDbFromLedger(db, root);
@@ -122,7 +155,7 @@ ledgerCmd
       emitJson({ ok: true, dir: root, ...result });
       process.exit(ExitCode.OK);
     }
-    printSuccess(`Restored DB from ${root}`);
+    printSuccess(`Imported legacy ledger into SQLite from ${root}`);
     printInfo(`accounts: ${result.accounts}  ·  positions: ${result.positions}`);
     printInfo(
       `transactions: ${result.transactions}  ·  snapshots: ${result.snapshots}  ·  fx: ${result.fx_rates}  ·  decisions: ${result.decisions ?? 0}  ·  reconciliations: ${result.reconciliations}`,
@@ -131,7 +164,7 @@ ledgerCmd
 
 ledgerCmd
   .command("verify")
-  .description("Compare DB vs vault ledger; non-zero exit if they diverge")
+  .description("Legacy check: compare exported ledger counts with SQLite")
   .option("--json", "Emit JSON")
   .action((opts) => {
     const root = getLedgerDir();
@@ -158,12 +191,13 @@ ledgerCmd
     }
     console.log(table.toString());
     if (diff.in_sync) {
-      printSuccess("DB and vault ledger are in sync.");
+      printSuccess("Legacy export counts match SQLite.");
     } else {
       process.stderr.write(
         chalk.yellow(
-          "⚠ DB and vault diverge. If DB is newer, run `finsight ledger sync`.\n" +
-            "  If you manually edited vault YAML, run `finsight ledger restore --yes`.\n",
+          "⚠ Legacy ledger and authoritative SQLite counts differ.\n" +
+            "  Export again only if you explicitly need interoperability.\n" +
+            "  Never import it as canonical recovery without a verified DB backup.\n",
         ),
       );
       process.exit(ExitCode.DATA_CONFLICT);
@@ -186,6 +220,20 @@ ledgerCmd
   .option("--dry-run", "Show what would be deleted without changing the DB")
   .option("--json", "Emit JSON")
   .action(async (opts) => {
+    if (!opts.dryRun && !opts.yes) {
+      if (!opts.json) {
+        process.stderr.write(
+          chalk.yellow(
+            "⚠ Destructive purge requires --yes. Run with --dry-run to preview.\n",
+          ),
+        );
+      }
+      fail("USER_ERROR", "Ledger purge requires --yes unless --dry-run is used.", {
+        json: opts.json,
+        hint: "Create a verified native backup before purging historical data.",
+      });
+    }
+
     const db = initDb();
 
     // Preview the impact first (always, before any write).
@@ -214,19 +262,6 @@ ledgerCmd
       process.exit(ExitCode.OK);
     }
 
-    if (!opts.yes && !opts.json) {
-      process.stderr.write(
-        chalk.yellow(
-          `⚠ Will delete ${preview.transactions_would_delete} transactions ` +
-            `and ${preview.snapshots_would_delete} snapshots ` +
-            `(traded_at / snapshot_date < ${opts.before}).\n` +
-            `  Destructive, no automatic backup.\n` +
-            `  Run with --yes to proceed, or --dry-run for JSON preview.\n`,
-        ),
-      );
-      process.exit(ExitCode.USER_ERROR);
-    }
-
     try {
       const result = purgeHistoricalBefore(db, opts.before);
       if (opts.json) {
@@ -237,7 +272,7 @@ ledgerCmd
         `Purged: ${result.transactions_deleted} transactions, ` +
           `${result.snapshots_deleted} snapshots (cutoff < ${result.cutoff})`,
       );
-      printInfo("Run `finsight ledger sync` to mirror to vault.");
+      printInfo("Run `finsight backup create` to capture a verified native backup.");
     } catch (e) {
       fail("USER_ERROR", e instanceof Error ? e.message : String(e), {
         json: opts.json,
@@ -247,7 +282,7 @@ ledgerCmd
 
 ledgerCmd
   .command("status")
-  .description("Show current ledger configuration")
+  .description("Show optional legacy ledger interoperability configuration")
   .option("--json", "Emit JSON")
   .action((opts) => {
     const cfg = readConfig();
@@ -262,12 +297,12 @@ ledgerCmd
           (existsSync(cfg.ledger_dir) ? chalk.green("exists") : chalk.red("missing")),
       );
       console.log();
-      console.log(chalk.dim("  Workflow:"));
-      console.log(chalk.dim("    finsight ledger sync     — daily DB → vault"));
-      console.log(chalk.dim("    finsight ledger verify   — check sync state"));
-      console.log(chalk.dim("    finsight ledger restore  — vault → DB (disaster recovery)"));
+      console.log(chalk.dim("  Legacy interoperability only; SQLite is authoritative."));
+      console.log(chalk.dim("    finsight ledger sync     — explicit SQLite → ledger export"));
+      console.log(chalk.dim("    finsight ledger verify   — compare exported counts"));
+      console.log(chalk.dim("    finsight ledger restore  — lossy ledger → SQLite import"));
     } else {
-      console.log("  No ledger configured. Run `finsight ledger init <dir>`.");
+      console.log("  No legacy ledger configured (normal). SQLite is authoritative.");
     }
   });
 

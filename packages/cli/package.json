@@ -36,7 +36,7 @@
     "vitest": "^3.2.0",
     "typescript": "^5.8.0"
   },
-  "description": "Local-first, AI-friendly personal portfolio tracker. Your files are truth, every CLI command outputs JSON for AI agents.",
+  "description": "Local-first, AI-friendly personal portfolio tracker. SQLite is authoritative, every CLI command outputs JSON for AI agents.",
   "keywords": [
     "portfolio",
     "personal-finance",
@@ -46,8 +46,7 @@
     "local-first",
     "cli",
     "yfinance",
-    "obsidian",
-    "vault"
+    "sqlite"
   ],
   "repository": {
     "type": "git",

@@ -5,7 +5,7 @@
 **See your money. Know where it sits. Decide what's next.**
 
 A personal portfolio tracker that runs on your laptop, plays well with AI tools,
-and keeps your data in plain text files you can read and edit yourself.
+and keeps your data in a local SQLite database you can back up and inspect.
 
 [![CI](https://github.com/ApeCodeAI/finsight/actions/workflows/ci.yml/badge.svg)](https://github.com/ApeCodeAI/finsight/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
@@ -38,9 +38,10 @@ rebalance?", you're stuck taking screenshots.
 
 FinSight takes the other path:
 
-- 🗂 **Your files are the truth.** Holdings live in plain text on your disk
-  (YAML — readable by humans). Back them up with `git`, edit them in any editor,
-  open them on any machine. The app's database is just a working copy.
+- 🗂 **SQLite is the truth.** Holdings, transactions, snapshots, and decisions
+  are stored locally in `~/.finsight/data/finsight.db`. Create a native,
+  integrity-checked backup with `finsight backup create` whenever you want a
+  recovery point.
 - 🌍 **You pick the base currency.** USD, CNY, JPY, EUR — pick one, everything
   else gets converted automatically. No region-locked product here.
 - 🤖 **AI is a first-class user.** Every command can output structured JSON, and
@@ -49,14 +50,14 @@ FinSight takes the other path:
 - 🔒 **Stays on your machine.** No cloud account, no signup, no telemetry. The
   dashboard runs at `localhost`.
 
-> A good portfolio tracker should be a file format first, a command-line tool
-> second, and a dashboard third — in that order.
+> A good portfolio tracker should be local-first, command-line friendly, and
+> easy for an AI agent to inspect and operate.
 
 ## ⚡ Install
 
 ```bash
 npm install -g finsight
-finsight init        # asks for base currency, locale, where to store your files
+finsight init        # asks for base currency and locale
 finsight overview    # see your portfolio
 ```
 
@@ -122,12 +123,12 @@ $ finsight overview --json | jq
 
 | Decision | Most trackers | FinSight |
 |---|---|---|
-| Where data lives | Their cloud | Your laptop, in plain text files |
-| Source of truth | Their database | Your text files; the app's DB is a copy |
+| Where data lives | Their cloud | Your laptop, in a local SQLite database |
+| Source of truth | Their database | Your local SQLite database |
 | AI access | Maybe a chat box | A documented JSON output any AI can read |
 | Base currency | Hard-coded | `finsight config set base-currency JPY` |
-| Schema changes | Their migration | You edit the file |
-| Backup | Vendor lock-in | `git commit` your folder |
+| Schema changes | Their migration | Local SQLite migrations |
+| Backup | Vendor lock-in | `finsight backup create` |
 | Account model | Sign up first | None — runs as you, on your machine |
 
 ## 🎯 What it does and doesn't do
@@ -154,7 +155,7 @@ For budgeting, you can pair FinSight with:
 - [**Actual**](https://actualbudget.org/) — local-first envelope budgeting (open source)
 - [**YNAB**](https://www.ynab.com/) / [**Lunch Money**](https://lunchmoney.app/) — commercial, polished
 
-Since FinSight uses plain text files, running both side by side is easy.
+Since FinSight runs locally and exposes JSON, running both side by side is easy.
 
 ## 🤖 Let an AI agent drive it
 
@@ -195,18 +196,14 @@ wire it into your specific assistant.
          └─────────┬───────────┴─────────┬───────────┘
                    │                     │
               ┌────▼─────┐         ┌─────▼─────┐
-              │ Hono API │ ◄─────► │  SQLite   │   ← working copy
-              └────┬─────┘         └─────▲─────┘
+              │ Hono API │ ◄─────► │  SQLite   │   ← authoritative local store
+              └────┬─────┘         └─────┬─────┘
                    │                     │
-                   │              finsight ledger sync (once a day)
+                   │              backup create / verify
                    │                     ▼
                    │             ┌───────────────┐
-                   └────────────►│  your folder  │   ← source of truth
-                                 │  accounts.yaml│      (git-tracked)
-                                 │  fx-rates.yaml│
-                                 │  transactions │
-                                 │  snapshots/   │
-                                 │  decisions/   │
+                   └────────────►│ native backup │   ← recovery copy
+                                 │   *.sqlite3   │
                                  └───────────────┘
 ```
 
@@ -224,7 +221,9 @@ finsight config set ledger-dir ~/notes/finance/ledger
 ```
 
 Your settings live in `~/.finsight/config.json`. The `FINSIGHT_DB_PATH`
-environment variable can override where the SQLite working copy lives.
+environment variable can override where the authoritative SQLite database lives.
+The optional `ledger-dir` setting is only for explicit legacy export/import
+interoperability; it is not required for normal use.
 
 ### 🔒 Note on security
 
@@ -278,10 +277,14 @@ finsight quote update --dry-run               # preview, don't write
 ```bash
 finsight reconcile <acc>                      # compare to what your broker app shows
 finsight reconcile log                        # past cross-check results
-finsight ledger sync                          # save today's database snapshot into your folder
-finsight ledger verify                        # check that the DB and your files match
-finsight ledger restore --yes                 # rebuild the DB from your files (disaster recovery)
+finsight backup create --json                 # create a verified native SQLite backup
+finsight backup verify <file> --json          # verify an existing native backup
+finsight doctor --json                        # inspect DB integrity and portfolio health
 ```
+
+`ledger sync`, `ledger verify`, and `ledger restore` are retained only as
+explicit legacy interoperability commands. Ledger export is lossy and is not
+the canonical recovery path.
 
 **Hand the portfolio to an LLM**
 ```bash
@@ -338,18 +341,19 @@ for the full guide.
 ## 🗃 What lives in your folder
 
 ```
-ledger/
-├── README.md            (auto-generated)
-├── accounts.yaml        — your accounts + holdings (you can edit this directly)
-├── fx-rates.yaml        — exchange rates between currencies
-├── transactions.jsonl   — every event, appended one per line
-├── snapshots/           — daily JSON snapshots
-└── decisions/           — markdown notes per investment decision
+legacy-ledger/             # only if you explicitly configure ledger-dir
+├── README.md              (auto-generated)
+├── accounts.yaml          — exported account + holding state
+├── fx-rates.jsonl         — exported dated exchange rates
+├── transactions.jsonl     — exported transactions
+├── snapshots.jsonl        — exported snapshots
+├── reconciliations.jsonl  — exported reconciliation rows
+└── decisions/             — exported decision notes
 ```
 
-This layout is deliberately simple. Paste `accounts.yaml` into any AI and
-ask for advice; commit the diff after a buy; restore the database from any
-point in your git history.
+This directory is an optional compatibility format. It is generated only by
+an explicit ledger command and can be useful for inspection or interoperability,
+but it is not a native SQLite backup and is not imported automatically.
 
 ## 🚧 Status
 

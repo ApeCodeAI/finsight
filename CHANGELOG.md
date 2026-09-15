@@ -5,6 +5,23 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). We use
 [SemVer](https://semver.org/) for versioning — `0.x` releases batch
 related changes, breaking changes can land in `0.x → 0.y`.
 
+## [Unreleased]
+
+### Changed
+
+- SQLite is now documented and treated as FinSight's authoritative local data
+  store during normal CLI and web operation.
+- The legacy plain-text ledger is explicit interoperability only; it is not
+  automatically synchronized and is not the canonical recovery format.
+- `doctor` checks SQLite integrity and reads the database without migrations or
+  writes. `init` refuses to load demo data into a populated portfolio database.
+
+### Added
+
+- `finsight backup create` creates an integrity-checked native SQLite backup
+  with SHA-256 metadata and restrictive local file permissions.
+- `finsight backup verify <file>` verifies an existing native SQLite backup.
+
 ## [0.1.0] — 2026-06-02 — Initial public release
 
 The first public version of FinSight. A local-first, AI-friendly personal
